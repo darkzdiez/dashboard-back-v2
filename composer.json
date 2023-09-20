@@ -1,0 +1,26 @@
+{
+    "name": "aporteweb/dashboard-back-v2",
+    "authors": [
+        {
+            "name": "Alfonzo Diez",
+            "email": "alfonzodiez@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {},
+    "autoload": {
+        "files": [
+            "src/Helper.php"
+        ],
+        "psr-4": {
+            "AporteWeb\\Dashboard\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "AporteWeb\\Dashboard\\DashboardServiceProvider"
+            ]
+        }
+    }
+}
