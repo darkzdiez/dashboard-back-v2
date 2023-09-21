@@ -1,0 +1,149 @@
+<?php
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+use Junges\ACL\Models\Permission;
+
+use AporteWeb\Dashboard\Controllers\PermissionController;
+use AporteWeb\Dashboard\Controllers\GroupController;
+use AporteWeb\Dashboard\Controllers\UserController;
+use AporteWeb\Dashboard\Controllers\NotesController;
+use AporteWeb\Dashboard\Controllers\JobsController;
+use AporteWeb\Dashboard\Controllers\DatabaseController;
+
+Route::group(['middleware' => ['auth']], function () {
+    Route::group([
+        'prefix' => 'notes',
+        'as'     => 'notes',
+    ], function() {
+        Route::get ('/{area}/{refid}', [NotesController::class, 'get']);
+        Route::get ('/{id}',           [NotesController::class, 'find']);
+        Route::post('/{id}/delete',    [NotesController::class, 'delete']);
+        Route::post('/{area}/{refid}', [NotesController::class, 'save']);
+    });
+    Route::group([
+        'prefix' => 'database',
+        'as'     => 'database',
+    ], function() {
+        Route::get ('/tables', [DatabaseController::class, 'tables']);
+        Route::get ('/groups', [DatabaseController::class, 'groups']);
+        Route::post('/groups', [DatabaseController::class, 'groupsStore']);
+        Route::post('/group/delete', [DatabaseController::class, 'groupDelete']);
+        
+        Route::post('/group/table/add', [DatabaseController::class, 'groupTableAdd']);
+        Route::post('/group/table/remove', [DatabaseController::class, 'groupTableRemove']);
+        Route::post('/group/seeders/generate', [DatabaseController::class, 'groupSeedersGenerate']);
+        Route::post('/group/seeders/execute', [DatabaseController::class, 'groupSeedersExecute']);
+        Route::post('/table/seeders/generate', [DatabaseController::class, 'tableSeedersGenerate']);
+        Route::post('/table/seeders/execute', [DatabaseController::class, 'tableSeedersExecute']);
+    });
+    Route::group([
+        'prefix' => 'jobs',
+        'as'     => 'jobs',
+    ], function() {
+        Route::get ('/',     [JobsController::class, 'all']);
+    });
+
+    Route::group([
+        'prefix' => 'permission',
+        'as'     => 'permission',
+    ], function() {
+        Route::post('/',             [PermissionController::class, 'all']);
+        Route::get ('/{id}',         [PermissionController::class, 'find']);
+        Route::post('/store/{id?}',  [PermissionController::class, 'store']);
+        Route::get ('/delete/{id}',  [PermissionController::class, 'delete']);
+        Route::get ('/restore/{id}', [PermissionController::class, 'restore']);
+        Route::post('/generate-seed-from-data-model',  [PermissionController::class, 'generateSeedFromDataModel']);
+    });
+    
+    Route::group([
+        'prefix' => 'group',
+        'as'     => 'group',
+    ], function() {
+        Route::post('/',             [GroupController::class, 'all']);
+        Route::get ('/{id}',         [GroupController::class, 'find']);
+        Route::post('/store/{id?}',  [GroupController::class, 'store']);
+        Route::get ('/delete/{id}',  [GroupController::class, 'delete']);
+        Route::get ('/restore/{id}', [GroupController::class, 'restore']);
+        Route::post('/generate-seed-from-data-model',  [GroupController::class, 'generateSeedFromDataModel']);
+    });
+    
+    Route::group([
+        'prefix' => 'user',
+        'as'     => 'user',
+    ], function() {
+        Route::post('/',             [UserController::class, 'all']);
+        Route::get ('/{id}',         [UserController::class, 'find']);
+        Route::post('/store/{id?}',  [UserController::class, 'store']);
+        Route::get ('/delete/{id}',  [UserController::class, 'delete']);
+        Route::get ('/restore/{id}', [UserController::class, 'restore']);
+        Route::post('/list-select',  [UserController::class, 'listSelect']);
+        Route::post('/generate-seed-from-data-model',  [UserController::class, 'generateSeedFromDataModel']);
+        Route::post('/login-as',     [UserController::class, 'loginAs']);
+        Route::post('/return-to-original-user' , [UserController::class, 'returnToOriginalUser']);
+    });
+
+});
+
+Route::get('check-auth', function () {
+    try {
+        $user = auth()->guard('web')->user();
+        // get all permissions
+        $allPermissions = Permission::get();
+        $permissions = [];
+        foreach ($allPermissions as $permission) {
+            $permissions[$permission->name] = [
+                'description' => $permission->description,
+                'access' => false,
+            ];
+        }
+        // Permission::create(['name' => 'add employees']);
+        // $user->syncPermissions(['user-create']);
+        // get all user permissions
+        $userPermissions = $user->getAllPermissions();
+        foreach ($userPermissions as $permission) {
+            $permissions[$permission->name]['access'] = true;
+        }
+        return response()->json([
+            'user' => [
+                'id'            => $user->id,
+                'name'          => $user->name,
+                'email'         => $user->email,
+                'username'      => $user->username,
+                'original_user' => session()->get('original_user'),
+                'environment'   => $user->environment,
+                'permissions'   => $permissions,
+            ],
+            'status' => 'success'
+        ]);
+    } catch (\Throwable $th) {
+        return response()->json([
+            'status' => 'error'
+        ]);
+    }
+});
+
+Route::post('login', function (Request $request) {
+    // check if username is email or username
+    if ( filter_var($request->username, FILTER_VALIDATE_EMAIL) ) {
+        $credentials = [
+            'email' => $request->username,
+            'password' => $request->password,
+        ];
+    } else {
+        $credentials = [
+            'username' => $request->username,
+            'password' => $request->password,
+        ];
+    }
+    if ( ! auth()->guard('web')->attempt($credentials, true) ) {
+        return response()->json(['error' => 'Unauthorized'], 401);
+    }
+    return redirect()->intended('api/check-auth');
+});
+
+Route::get('logout', function () {
+    auth()->logout();
+    session()->invalidate();
+    return response()->json(['message' => 'Logged out']);
+});
