@@ -15,11 +15,14 @@ class UserController extends Controller {
                 $data->where($key, 'like', '%'.$value.'%');
             }
         }
+        if ( request()->has('trash') && request()->trash == 1 ) {
+            $data->onlyTrashed();
+        }
         return $data->paginate();
     }
 
     public function find($id) {
-        $item = User::find($id);
+        $item = User::where('uuid', $id)->first();
         if ($item) {
             $item->groups = $item->groups()->pluck('id');
             return $item;
@@ -28,23 +31,24 @@ class UserController extends Controller {
     }
 
     public function store(Request $request, $id = null) {
+        // store a new user
+        if ($id) {
+            $user = User::where('uuid', $id)->first();
+        } else {
+            $user = new User;
+        }
+
         // validate the request
         $request->validate([
             'name'     => 'required|string|max:255',
-            'username' => 'required|string|max:255|unique:users' . ($id ? ",username,$id" : ''),
-            'email'    => 'required|string|email|max:255|unique:users' . ($id ? ",email,$id" : ''),
+            'username' => 'required|string|max:255|unique:users' . ($id ? ",username,$user->id" : ''),
+            'email'    => 'required|string|email|max:255|unique:users' . ($id ? ",email,$user->id" : ''),
             'password' => [
                 $id ? 'nullable' : 'required',
                 'string',
                 'min:6',
             ]
         ]);
-        // store a new user
-        if ($id) {
-            $user = User::find($id);
-        } else {
-            $user = new User;
-        }
         $user->name = $request->name;
         $user->username = $request->username;
         $user->email = $request->email;
@@ -63,19 +67,19 @@ class UserController extends Controller {
     }
 
     public function delete($id) {
-        $item = User::find($id);
+        $item = User::where('uuid', $id)->first();
         $item->delete();
         return $item;
     }
 
     public function restore($id) {
-        $item = User::withTrashed()->find($id);
+        $item = User::withTrashed()->where('uuid', $id)->first();
         $item->restore();
         return $item;
     }
 
     public function destroy($id) {
-        $item = User::withTrashed()->find($id);
+        $item = User::withTrashed()->where('uuid', $id)->first();
         $item->forceDelete();
         return $item;
     }

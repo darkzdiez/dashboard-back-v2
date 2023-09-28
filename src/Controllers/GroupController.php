@@ -5,7 +5,7 @@ namespace AporteWeb\Dashboard\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 // use Junges\ACL\Models\Group;
-use App\Models\Group;
+use AporteWeb\Dashboard\Models\Group;
 
 class GroupController extends Controller {
     public function all() {
@@ -24,7 +24,7 @@ class GroupController extends Controller {
 
 
     public function find($id) {
-        $group = Group::find($id);
+        $group = Group::where('uuid', $id)->first();
         if ($group) {
             $group->permissions   = $group->permissions()->pluck('id');
             $group->notifications = $group->notifications()->pluck('key');
@@ -42,7 +42,7 @@ class GroupController extends Controller {
         ]);
         // store a new item
         if ($id) {
-            $item = Group::find($id);
+            $item = Group::where('uuid', $id)->first();
         } else {
             $item = new Group;
         }
@@ -69,19 +69,19 @@ class GroupController extends Controller {
     }
 
     public function delete($id) {
-        $item = Group::find($id);
+        $item = Group::where('uuid', $id)->first();
         $item->delete();
         return $item;
     }
 
     public function restore($id) {
-        $item = Group::withTrashed()->find($id);
+        $item = Group::withTrashed()->where('uuid', $id)->first();
         $item->restore();
         return $item;
     }
 
     public function destroy($id) {
-        $item = Group::withTrashed()->find($id);
+        $item = Group::withTrashed()->where('uuid', $id)->first();
         $item->forceDelete();
         return $item;
     }

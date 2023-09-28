@@ -65,6 +65,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::post('/store/{id?}',  [GroupController::class, 'store']);
         Route::get ('/delete/{id}',  [GroupController::class, 'delete']);
         Route::get ('/restore/{id}', [GroupController::class, 'restore']);
+        Route::post('/list-select',  [GroupController::class, 'listSelect']);
         Route::post('/generate-seed-from-data-model',  [GroupController::class, 'generateSeedFromDataModel']);
     });
     
