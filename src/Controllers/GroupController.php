@@ -34,18 +34,18 @@ class GroupController extends Controller {
     }
 
     public function store(Request $request, $id = null) {
-        // validate the request
-        $request->validate([
-            'name'        => 'required|string|max:255|unique:groups' . ($id ? ",name,$id" : ''),
-            'guard_name'  => 'required|string|max:255',
-            'description' => 'nullable|string|max:255',
-        ]);
         // store a new item
         if ($id) {
             $item = Group::where('uuid', $id)->first();
         } else {
             $item = new Group;
-        }
+        }        
+        // validate the request
+        $request->validate([
+            'name'        => 'required|string|max:255|unique:groups' . ($id ? ",name,$item->id" : ''),
+            'guard_name'  => 'required|string|max:255',
+            'description' => 'nullable|string|max:255',
+        ]);
         $item->name        = $request->name;
         $item->guard_name  = $request->guard_name;
         $item->description = $request->description;

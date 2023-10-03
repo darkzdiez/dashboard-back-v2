@@ -18,6 +18,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Auth;
 
 if (!function_exists('__dashboardTask')) {
     function __dashboardTask($title = null, $description = null, $group = 'jobs', $icon = null, $level = 'info', Closure $next = null) {
@@ -52,11 +53,12 @@ if (!function_exists('__dashboardTask')) {
         // Crear en la carpeta dashboard-task, un achivo con el nombre del uuid y con el contenido de status waiting
         Storage::disk('local')->put('dashboard-task/' . $uuid . '.json', json_encode(['status' => 'waiting'], JSON_PRETTY_PRINT));
         
-        Cache::forget('jobs.' . $user_id);
+        // Cache::forget('jobs.' . $user_id);
+        Cache::flush();
         
         // Utilizar dispatch para añadir la tarea a la cola, esto lo almacenará en la tabla jobs
         $dispatch = dispatch(function () use ($uuid, $next, $user_id) {
-
+            Auth::loginUsingId($user_id);
             // Se define el tiempo limite de ejecución y la memoria
             set_time_limit(0); // 0 = no time limit
             ini_set('memory_limit', '-1'); // -1 = no memory limit
@@ -70,7 +72,8 @@ if (!function_exists('__dashboardTask')) {
             ]);
             // Cambiar el status del archivo a running
             Storage::disk('local')->put('dashboard-task/' . $uuid . '.json', json_encode(['status' => 'running'], JSON_PRETTY_PRINT));
-            Cache::forget('jobs.' . $user_id);
+            // Cache::forget('jobs.' . $user_id);
+            Cache::flush();
 
             try {
                 // Eejecutar la clausura y retornar el resultado
@@ -91,7 +94,8 @@ if (!function_exists('__dashboardTask')) {
 
                 // Cambiar el status del archivo a finish
                 Storage::disk('local')->put('dashboard-task/' . $uuid . '.json', json_encode(['status' => 'finish'] + $callback, JSON_PRETTY_PRINT));
-                Cache::forget('jobs.' . $user_id);
+                // Cache::forget('jobs.' . $user_id);
+                Cache::flush();
             } catch (\Throwable $th) {
 
                 $error = [
@@ -109,7 +113,8 @@ if (!function_exists('__dashboardTask')) {
 
                 // Cambiar el status del archivo a failed
                 Storage::disk('local')->put('dashboard-task/' . $uuid . '.json', json_encode($error, JSON_PRETTY_PRINT));
-                Cache::forget('jobs.' . $user_id);
+                // Cache::forget('jobs.' . $user_id);
+                Cache::flush();
             }
         })->onQueue($queue);
         return [
