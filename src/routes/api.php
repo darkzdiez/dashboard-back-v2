@@ -10,6 +10,7 @@ use AporteWeb\Dashboard\Controllers\UserController;
 use AporteWeb\Dashboard\Controllers\NotesController;
 use AporteWeb\Dashboard\Controllers\JobsController;
 use AporteWeb\Dashboard\Controllers\DatabaseController;
+use AporteWeb\Dashboard\Controllers\ProfileController;
 
 Route::group(['middleware' => ['auth']], function () {
     Route::group([
@@ -38,10 +39,20 @@ Route::group(['middleware' => ['auth']], function () {
         Route::post('/table/seeders/execute', [DatabaseController::class, 'tableSeedersExecute']);
     });
     Route::group([
+        'prefix' => 'profile',
+        'as'     => 'profile',
+    ], function() {
+        Route::get ('/',                [ProfileController::class, 'getProfile']);
+        Route::post('/',                [ProfileController::class, 'saveProfile']);
+        Route::post('/change-password', [ProfileController::class, 'changePassword']);
+    });
+
+    Route::group([
         'prefix' => 'jobs',
         'as'     => 'jobs',
     ], function() {
-        Route::get ('/',     [JobsController::class, 'all']);
+        Route::get ('/',        [JobsController::class, 'all']);
+        Route::get ('/top-bar', [JobsController::class, 'topBar']);
     });
 
     Route::group([
