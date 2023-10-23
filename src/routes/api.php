@@ -6,6 +6,7 @@ use Junges\ACL\Models\Permission;
 
 use AporteWeb\Dashboard\Controllers\PermissionController;
 use AporteWeb\Dashboard\Controllers\GroupController;
+use AporteWeb\Dashboard\Controllers\CronController;
 use AporteWeb\Dashboard\Controllers\UserController;
 use AporteWeb\Dashboard\Controllers\NotesController;
 use AporteWeb\Dashboard\Controllers\JobsController;
@@ -80,6 +81,18 @@ Route::group(['middleware' => ['auth']], function () {
         Route::post('/generate-seed-from-data-model',  [GroupController::class, 'generateSeedFromDataModel']);
     });
     
+    Route::group([
+        'prefix' => 'cron',
+        'as'     => 'cron',
+    ], function() {
+        Route::post('/',             [CronController::class, 'all']);
+        Route::get ('/{id}',         [CronController::class, 'find']);
+        Route::post('/store/{id?}',  [CronController::class, 'store']);
+        Route::get ('/delete/{id}',  [CronController::class, 'delete']);
+        Route::get ('/restore/{id}', [CronController::class, 'restore']);
+        Route::post('/list-select',  [CronController::class, 'listSelect']);
+    });
+
     Route::group([
         'prefix' => 'user',
         'as'     => 'user',

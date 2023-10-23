@@ -108,6 +108,10 @@ class DashboardServiceProvider extends ServiceProvider {
             // ]);
         }
 
+        // Load the views
+        if(is_dir(__DIR__.'/resources/views')) {
+            $this->loadViewsFrom(__DIR__.'/resources/views', 'Dashboard');
+        }
 
         Queue::after(function (JobProcessed $event) {
             /*
