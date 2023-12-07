@@ -172,3 +172,51 @@ Route::get('logout', function () {
     session()->invalidate();
     return response()->json(['message' => 'Logged out']);
 });
+
+Route::get('server-stats', function () {
+    $stats = [
+        'time' => [
+            'date' => date('Y-m-d H:i:s'),
+            'timezone' => date_default_timezone_get(),
+            'timestamp' => time(),
+        ],
+
+        'php' => [
+            'version' => phpversion(),
+        ],
+        'laravel' => [
+            'version' => app()->version(),
+        ],
+        'mysql' => [
+            'version' => DB::select('select version() as version')[0]->version,
+        ],
+        'os' => [
+            'name' => php_uname('s'),
+            'release' => php_uname('r'),
+            'version' => php_uname('v'),
+            'machine' => php_uname('m'),
+        ],
+        'cpu' => [
+            'cores' => shell_exec('nproc'),
+            'model' => shell_exec('cat /proc/cpuinfo | grep "model name" | head -1 | cut -d ":" -f2'),
+        ],
+        'ram' => [
+            'total' => shell_exec('free -m | grep Mem | awk \'{print $2}\''),
+            'used' => shell_exec('free -m | grep Mem | awk \'{print $3}\''),
+            'free' => shell_exec('free -m | grep Mem | awk \'{print $4}\''),
+            'shared' => shell_exec('free -m | grep Mem | awk \'{print $5}\''),
+            'cache' => shell_exec('free -m | grep Mem | awk \'{print $6}\''),
+            'available' => shell_exec('free -m | grep Mem | awk \'{print $7}\''),
+        ],
+        'disk' => [
+            'total' => disk_total_space('/'),
+            'free' => disk_free_space('/'),
+            'used' => disk_total_space('/') - disk_free_space('/'),
+        ],
+        'uptime' => shell_exec('uptime -p'),
+    ];
+    return response()->json($stats);
+});
+Route::get('timestamp', function () {
+    return time();
+});

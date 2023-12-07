@@ -10,7 +10,7 @@ use AporteWeb\Dashboard\Models\Cron;
 class CronController extends Controller {
     public function all() {
         // sniff($this->prefixPermission . '-*');
-        $data = Cron::orderBy('id', 'desc');
+        $data = Cron::orderBy('id', 'asc');
         if ( request()->has('filters') && is_array(request()->filters) ) {
             foreach (request()->filters as $key => $value) {
                 $data->where($key, 'like', '%'.$value.'%');
@@ -33,7 +33,7 @@ class CronController extends Controller {
 
     public function run() {
         $path = base_path('storage/app/cron.php');
-        $crons = Cron::orderBy('id', 'desc')->get();
+        $crons = Cron::orderBy('id', 'asc')->get();
         $content = view('Dashboard::cron', [
             'crons' => $crons,
         ])->render();
