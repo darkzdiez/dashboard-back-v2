@@ -79,23 +79,11 @@ if (!function_exists('__dashboardTask')) {
             Storage::disk('local')->put('dashboard-task/' . $uuid . '.json', json_encode(['status' => 'running'], JSON_PRETTY_PRINT));
             // Cache::forget('jobs.' . $user_id);
             Cache::flush();
-
+            DB::enableQueryLog();
             try {
                 // Eejecutar la clausura y retornar el resultado
                 $callback = $next();
-
-                // Calcular el tiempo y la memoria utilizada
-                $time_execution = microtime(true) - $start;
-                $memory_usage = memory_get_usage() - $memory_usage;
-
-                // Almacenar el resultado de callback en la tabla index_jobs
-                DB::table('index_jobs')->where('uuid', $uuid)->update([
-                    'callback' => json_encode($callback),
-                    'status' => 'finish',
-                    'time_execution' => $time_execution,
-                    'memory_usage' => $memory_usage,
-                    'updated_at' => \Carbon\Carbon::Now(),
-                ]);
+                $status   = 'finish';
 
                 // Cambiar el status del archivo a finish
                 Storage::disk('local')->put('dashboard-task/' . $uuid . '.json', json_encode(['status' => 'finish'] + $callback, JSON_PRETTY_PRINT));
@@ -103,24 +91,35 @@ if (!function_exists('__dashboardTask')) {
                 Cache::flush();
             } catch (\Throwable $th) {
 
-                $error = [
+                $callback = [
                     'status' => 'failed',
                     'message' => $th->getMessage(),
                     'trace' => $th->getTraceAsString(),
                 ];
-
-                // Almacenar el error en la tabla index_jobs
-                DB::table('index_jobs')->where('uuid', $uuid)->update([
-                    'callback' => json_encode($error, JSON_PRETTY_PRINT),
-                    'status' => 'failed',
-                    'updated_at' => \Carbon\Carbon::Now(),
-                ]);
+                $status   = 'failed';
 
                 // Cambiar el status del archivo a failed
                 Storage::disk('local')->put('dashboard-task/' . $uuid . '.json', json_encode($error, JSON_PRETTY_PRINT));
                 // Cache::forget('jobs.' . $user_id);
                 Cache::flush();
             }
+            $queries = DB::getRawQueryLog();
+            // Calcular el tiempo y la memoria utilizada
+            $time_execution = microtime(true) - $start;
+            $memory_usage = memory_get_usage() - $memory_usage;
+            
+            // Almacenar el resultado de callback en la tabla index_jobs
+            DB::table('index_jobs')->where('uuid', $uuid)->update([
+                'callback' => json_encode($callback, JSON_PRETTY_PRINT),
+                'status' => $status,
+                'queries' => json_encode($queries, JSON_PRETTY_PRINT),
+                'queries_time' => array_sum(array_column($queries, 'time')),
+                'queries_count' => count($queries),
+                'time_execution' => $time_execution,
+                'memory_usage' => $memory_usage,
+                'updated_at' => \Carbon\Carbon::Now(),
+            ]);
+
         })->onQueue($queue);
         return [
             'uuid' => $uuid,

@@ -28,6 +28,7 @@ class PermissionController extends Controller {
             $permission = Permission::find($id);
         } else {
             $permission = new Permission;
+            $permission->uuid = Str::uuid();
         }
         if ( request()->has('assistant') && request()->assistant == 'crud-basic' ) {
             $permissions = [
@@ -40,6 +41,7 @@ class PermissionController extends Controller {
             ];
             foreach ($permissions as $key => $description) {
                 $permission = new Permission;
+                $permission->uuid         = Str::uuid();
                 $permission->group_prefix = $request->group_prefix;
                 $permission->name         = $request->name . $key;
                 $permission->guard_name   = $request->guard_name;

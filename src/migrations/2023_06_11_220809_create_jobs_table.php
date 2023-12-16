@@ -19,8 +19,8 @@ return new class extends Migration
                 $table->string('icon', 191)->nullable();
                 $table->string('level', 191)->nullable();
                 $table->json('callback')->nullable();
-                $table->float('time_execution', 10, 2)->default(0);
-                $table->float('memory_usage', 10, 2)->default(0);
+                $table->float('time_execution', 14, 2)->default(0);
+                $table->float('memory_usage', 14, 2)->default(0);
                 $table->string('status', 191)->nullable();
                 $table->unsignedBigInteger('user_id')->nullable();
                 $table->softDeletes();
