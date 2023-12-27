@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 if (!function_exists('__dashboardTask')) {
     function __dashboardTask($title = null, $description = null, $group = 'jobs', $icon = null, $level = 'info', Closure $next = null) {
@@ -99,9 +100,10 @@ if (!function_exists('__dashboardTask')) {
                 $status   = 'failed';
 
                 // Cambiar el status del archivo a failed
-                Storage::disk('local')->put('dashboard-task/' . $uuid . '.json', json_encode($error, JSON_PRETTY_PRINT));
+                Storage::disk('local')->put('dashboard-task/' . $uuid . '.json', json_encode($callback, JSON_PRETTY_PRINT));
                 // Cache::forget('jobs.' . $user_id);
                 Cache::flush();
+                Log::error($th);
             }
             $queries = DB::getRawQueryLog();
             // Calcular el tiempo y la memoria utilizada

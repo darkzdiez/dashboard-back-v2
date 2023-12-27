@@ -5,7 +5,7 @@ namespace AporteWeb\Dashboard\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
-use App\Models\Note;
+use AporteWeb\Dashboard\Models\IndexJob;
 use Illuminate\Support\Facades\Cache;
 
 class JobsController extends Controller {
@@ -40,12 +40,26 @@ class JobsController extends Controller {
         return response()->json($jobs);
     }
     public function all() {
-        $jobs = Cache::rememberForever('jobs.' . auth()->user()->id, function () {
-            return DB::table('index_jobs')
-                ->where('user_id', auth()->user()->id)
-                ->orderByDesc('id')
-                ->paginate(7);
-        });
-        return response()->json($jobs);
+        return IndexJob::select(
+            'uuid',
+            'queue',
+            'title',
+            'description',
+            'group',
+            'icon',
+            'level',
+            'status',
+            'created_at',
+            'user_id',
+            'time_execution',
+            'memory_usage',
+            'queries_time',
+            'queries_count'
+        )
+            ->with([ 'user' => function ($query) {
+                $query->select('id', 'name');
+            }])
+            ->orderByDesc('id')
+            ->paginate(20);
     }
 }

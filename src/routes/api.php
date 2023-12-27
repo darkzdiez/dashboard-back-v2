@@ -52,7 +52,7 @@ Route::group(['middleware' => ['auth']], function () {
         'prefix' => 'jobs',
         'as'     => 'jobs',
     ], function() {
-        Route::get ('/',        [JobsController::class, 'all']);
+        Route::any ('/',        [JobsController::class, 'all']);
         Route::get ('/top-bar', [JobsController::class, 'topBar']);
     });
 
