@@ -60,27 +60,31 @@ class DashboardServiceProvider extends ServiceProvider {
             $assets_version = hash('md5', rand());
         } else {
             $assets_version = '16';
-            $git_refs_dir = base_path('.git/refs/heads');
-            $files = scandir($git_refs_dir, SCANDIR_SORT_ASCENDING);
-            // Filtrar los archivos para excluir "." y ".."
-            $branch_files = array_filter($files, function ($file) {
-                return $file !== '.' && $file !== '..';
-            });
-
-            // Obtener el primer archivo (rama)
-            $first_branch_file = reset($branch_files);
-
-            if ($first_branch_file) {
-                $path_file = $git_refs_dir . '/' . $first_branch_file;
-                if (file_exists($path_file)) {
-                    $assets_version = trim(substr(file_get_contents($path_file), 4));
-                    // Resto de tu lógica aquí...
-                } else {
-                    // "El archivo de la rama no existe.";
-                }
+            if ( env('ASSETS_VERSION') ) {
+                $assets_version = env('ASSETS_VERSION');
             } else {
-                // "No se encontraron archivos de ramas en la carpeta .git/refs/heads.";
-            }            
+                $git_refs_dir = base_path('.git/refs/heads');
+                $files = scandir($git_refs_dir, SCANDIR_SORT_ASCENDING);
+                // Filtrar los archivos para excluir "." y ".."
+                $branch_files = array_filter($files, function ($file) {
+                    return $file !== '.' && $file !== '..';
+                });
+    
+                // Obtener el primer archivo (rama)
+                $first_branch_file = reset($branch_files);
+    
+                if ($first_branch_file) {
+                    $path_file = $git_refs_dir . '/' . $first_branch_file;
+                    if (file_exists($path_file)) {
+                        $assets_version = trim(substr(file_get_contents($path_file), 4));
+                        // Resto de tu lógica aquí...
+                    } else {
+                        // "El archivo de la rama no existe.";
+                    }
+                } else {
+                    // "No se encontraron archivos de ramas en la carpeta .git/refs/heads.";
+                }            
+            }
         }
         view()->share([
             'assets_version'      => $assets_version,
