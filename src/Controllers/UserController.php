@@ -9,16 +9,32 @@ use App\Models\User;
 class UserController extends Controller {
     public function all() {
         // sniff('group-*');
-        $data = User::orderBy('id', 'desc');
+        // traer la organización, pero solo el nombre
+        $paginator = User::with(['organization' => function($query) {
+            $query->select('id', 'uuid', 'name');
+        }])
+            ->orderBy('id', 'desc');
         if ( request()->has('filters') && is_array(request()->filters) ) {
             foreach (request()->filters as $key => $value) {
-                $data->where($key, 'like', '%'.$value.'%');
+                $paginator->where($key, 'like', '%'.$value.'%');
             }
         }
         if ( request()->has('trash') && request()->trash == 1 ) {
-            $data->onlyTrashed();
+            $paginator->onlyTrashed();
         }
-        return $data->paginate();
+
+        $paginator = $paginator->paginate(20);
+
+        $data = $paginator->getCollection();
+        $data->each(function ($item) {
+            $item->setHidden(['id']);
+            if ( $item->organization ) {
+                $item->organization->makeHidden(['id']);
+            }
+        });
+        $paginator->setCollection($data);
+    
+        return $paginator;
     }
 
     public function find($id) {

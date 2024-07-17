@@ -131,13 +131,17 @@ Route::get('check-auth', function () {
         }
         return response()->json([
             'user' => [
-                'id'            => $user->id,
-                'name'          => $user->name,
-                'email'         => $user->email,
-                'username'      => $user->username,
-                'original_user' => session()->get('original_user'),
-                'environment'   => $user->environment,
-                'permissions'   => $permissions,
+                'id'                     => $user->id,
+                'name'                   => $user->name,
+                'email'                  => $user->email,
+                'username'               => $user->username,
+                'original_user'          => session()->get('original_user'),
+                'environment'            => $user->environment,
+                'permissions'            => $permissions,
+                'organization_id'        => $user->organization->id,
+                'organization_name'      => $user->organization->name,
+                'organization_type_id'   => $user->organization->type->id,
+                'organization_type_name' => $user->organization->type->name,
             ],
             'status' => 'success'
         ]);

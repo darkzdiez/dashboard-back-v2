@@ -3,6 +3,7 @@ namespace AporteWeb\Dashboard\Models;
 
 use Junges\ACL\Models\Group as JungesGroup;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use App\Models\Organization;
 
 class Group extends JungesGroup {
     use SoftDeletes;
@@ -25,5 +26,8 @@ class Group extends JungesGroup {
 
     public function notifications() {
         return $this->hasMany(GroupNotifications::class, 'group_id');
+    }
+    public function organization() {
+        return $this->belongsTo(Organization::class, 'organization_id');
     }
 }

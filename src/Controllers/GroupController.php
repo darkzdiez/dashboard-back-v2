@@ -10,16 +10,28 @@ use AporteWeb\Dashboard\Models\Group;
 class GroupController extends Controller {
     public function all() {
         // sniff($this->prefixPermission . '-*');
-        $data = Group::with(['parent', 'users'])->orderBy('id', 'desc');
+        $paginator = Group::with(['parent', 'users'])->orderBy('id', 'desc');
         if ( request()->has('filters') && is_array(request()->filters) ) {
             foreach (request()->filters as $key => $value) {
-                $data->where($key, 'like', '%'.$value.'%');
+                $paginator->where($key, 'like', '%'.$value.'%');
             }
         }
         if ( request()->has('trash') && request()->trash == 1 ) {
-            $data->onlyTrashed();
+            $paginator->onlyTrashed();
         }
-        return $data->paginate(20);
+
+        $paginator = $paginator->paginate(20);
+
+        $data = $paginator->getCollection();
+        $data->each(function ($item) {
+            $item->setHidden(['id']);
+            if ( $item->organization ) {
+                $item->organization->makeHidden(['id']);
+            }
+        });
+        $paginator->setCollection($data);
+    
+        return $paginator;
     }
 
 
