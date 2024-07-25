@@ -24,7 +24,7 @@ class GroupController extends Controller {
 
         $data = $paginator->getCollection();
         $data->each(function ($item) {
-            $item->setHidden(['id']);
+            // $item->setHidden(['id']);
             if ( $item->organization ) {
                 $item->organization->makeHidden(['id']);
             }

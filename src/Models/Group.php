@@ -8,10 +8,12 @@ use App\Models\Organization;
 class Group extends JungesGroup {
     use SoftDeletes;
 
-    protected $appends = [];
+    protected $appends = ['organization_uuid', 'parent_uuid'];
 
     protected $fillable = [];
 	protected $casts = [];
+
+    protected $hidden = ['created_at', 'updated_at', 'deleted_at', 'organization_id', 'parent_id', 'id'];
 
     public static function boot() {
         parent::boot();
@@ -30,4 +32,13 @@ class Group extends JungesGroup {
     public function organization() {
         return $this->belongsTo(Organization::class, 'organization_id');
     }
+
+    public function getOrganizationUuidAttribute() {
+        return $this->organization ? $this->organization->uuid : null;
+    }
+
+    public function getParentUuidAttribute() {
+        return $this->parent ? $this->parent->uuid : null;
+    }
+    
 }
