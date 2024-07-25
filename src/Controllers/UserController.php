@@ -5,6 +5,7 @@ namespace AporteWeb\Dashboard\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use AporteWeb\Dashboard\Models\Group;
 
 class UserController extends Controller {
     public function all() {
@@ -12,7 +13,7 @@ class UserController extends Controller {
         // traer la organización, pero solo el nombre
         $paginator = User::with(['organization' => function($query) {
             $query->select('id', 'uuid', 'name');
-        }])
+        }, 'groups:name'])
             ->orderBy('id', 'desc');
         if ( request()->has('filters') && is_array(request()->filters) ) {
             foreach (request()->filters as $key => $value) {
@@ -31,6 +32,10 @@ class UserController extends Controller {
             if ( $item->organization ) {
                 $item->organization->makeHidden(['id']);
             }
+            // hide the pivot table
+            $item->groups->each(function($group) {
+                $group->makeHidden(['pivot']);
+            });
         });
         $paginator->setCollection($data);
     
@@ -40,7 +45,7 @@ class UserController extends Controller {
     public function find($id) {
         $item = User::where('uuid', $id)->first();
         if ($item) {
-            $item->groups = $item->groups()->pluck('id');
+            $item->groups = $item->groups()->pluck('uuid');
             return $item;
         }
         return response()->json(['message' => 'Item not found'], 404);    
@@ -68,12 +73,16 @@ class UserController extends Controller {
         $user->name = $request->name;
         $user->username = $request->username;
         $user->email = $request->email;
+        $user->organization_id = $request->organization_id;
+        
         if ($request->password) {
             $user->password = bcrypt($request->password);
         }
         $user->save();
         $groups = array_filter(explode(',', $request->groups));
         if ( count($groups) ) {
+            // groups tiene los uuids de los grupos, debemos convertirlos a ids
+            $groups = Group::whereIn('uuid', $groups)->pluck('id');
             $user->groups()->sync($groups);
         } else {
             $user->groups()->detach();

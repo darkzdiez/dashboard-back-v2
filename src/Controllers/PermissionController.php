@@ -9,7 +9,9 @@ use Junges\ACL\Models\Permission;
 
 class PermissionController extends Controller {
     public function all() {
-        return Permission::orderBy('id', 'desc')->paginate(40);
+        return Permission::orderBy('group_prefix', 'asc')
+            ->orderBy('name', 'asc')
+            ->paginate(100);
     }
 
     public function find($id) {
