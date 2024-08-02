@@ -38,6 +38,10 @@ Route::group(['middleware' => ['auth']], function () {
         Route::post('/group/seeders/execute', [DatabaseController::class, 'groupSeedersExecute']);
         Route::post('/table/seeders/generate', [DatabaseController::class, 'tableSeedersGenerate']);
         Route::post('/table/seeders/execute', [DatabaseController::class, 'tableSeedersExecute']);
+        
+        Route::post('/backup/generate', [DatabaseController::class, 'backupGenerate']);
+        Route::get ('/backup/list', [DatabaseController::class, 'listBackups']);
+        Route::post('/backup/delete', [DatabaseController::class, 'backupDelete']);
     });
     Route::group([
         'prefix' => 'profile',

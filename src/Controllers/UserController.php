@@ -129,7 +129,7 @@ class UserController extends Controller {
         }
 
         // Checamos si el usuario existe
-        $targetUser = User::find($request->target_id);
+        $targetUser = User::where('uuid', $request->target_id)->first();
         if ( !$targetUser ) {
             return response()->json(['message' => 'El usuario no existe'], 404);
         }

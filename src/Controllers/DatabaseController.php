@@ -5,7 +5,7 @@ namespace AporteWeb\Dashboard\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
-
+use App\Services\DatabaseBackup;
 
 class DatabaseController extends Controller {
     public function tables() {
@@ -302,5 +302,67 @@ class DatabaseController extends Controller {
         }
     }
 
+    public function backupGenerate(Request $request) {
+        $backup = new DatabaseBackup();
+        $backup->generateBackupCompressed(
+            $filePath = storage_path('app/public/backup/database-'.time().'.sql'),
+            $ignoteDataTables = [
+                'failed_jobs',
+                'index_jobs',
+                'jobs',
+                'processed_jobs',
+                'shipment_tracks'
+            ]
+        );
 
+        // comprimir archivo en .zip
+        $zip = new \ZipArchive();
+        $zip->open($filePath.'.zip', \ZipArchive::CREATE);
+        $zip->addFile($filePath, basename($filePath));
+        $zip->close();
+    
+        return [
+            'status' => 'success',
+            'message' => 'Generado backup de la base de datos y limpiado de tablas de jobs',
+            'path' => $filePath,
+            'url' => url('storage/backup/'.basename($filePath)),
+        ];    
+    }
+
+    public function listBackups() {
+        $files = glob(storage_path('app/public/backup/*'));
+        $backups = [];
+        foreach ($files as $file) {
+            $backups[] = [
+                'name' => basename($file),
+                'path' => $file,
+                'url' => url('storage/backup/'.basename($file)),
+                // size in megabytes
+                'size' => round(filesize($file) / 1024 / 1024, 2),
+                'date' => date('Y-m-d H:i:s', filemtime($file)),
+                'type' => pathinfo($file, PATHINFO_EXTENSION),
+            ];
+        }
+
+        // ordenar los backups por fecha, del mas nuevo al mas antiguo
+        usort($backups, function($a, $b) {
+            return $b['date'] <=> $a['date'];
+        });
+        return $backups;
+    }
+
+    public function backupDelete(Request $request) {
+        $request->validate([
+            'path' => 'required|string',
+        ]);
+
+        $path = $request->path;
+
+        if (file_exists($path)) {
+            unlink($path);
+            return response()->json(['message' => 'Backup deleted'], 200);
+        }
+
+        return response()->json(['message' => 'Backup not found'], 404);
+    }
 }
