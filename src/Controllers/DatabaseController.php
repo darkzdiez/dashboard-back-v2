@@ -311,7 +311,7 @@ class DatabaseController extends Controller {
                 'index_jobs',
                 'jobs',
                 'processed_jobs',
-                'shipment_tracks'
+                // 'shipment_tracks'
             ]
         );
 

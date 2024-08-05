@@ -120,18 +120,24 @@ Route::get('check-auth', function () {
         // get all permissions
         $allPermissions = Permission::get();
         $permissions = [];
+        /*
         foreach ($allPermissions as $permission) {
             $permissions[$permission->name] = [
                 'description' => $permission->description,
                 'access' => false,
             ];
         }
+        */
         // Permission::create(['name' => 'add employees']);
         // $user->syncPermissions(['user-create']);
         // get all user permissions
         $userPermissions = $user->getAllPermissions();
         foreach ($userPermissions as $permission) {
-            $permissions[$permission->name]['access'] = true;
+            // $permissions[$permission->name]['access'] = true;
+            $permissions[$permission->name] = [
+                'description' => $permission->description,
+                'access' => true,
+            ];
         }
         return response()->json([
             'user' => [
