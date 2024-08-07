@@ -115,7 +115,7 @@ Route::group(['middleware' => ['auth']], function () {
 });
 
 Route::get('check-auth', function () {
-    try {
+    //try {
         $user = auth()->guard('web')->user();
         // get all permissions
         $allPermissions = Permission::get();
@@ -131,7 +131,8 @@ Route::get('check-auth', function () {
         // Permission::create(['name' => 'add employees']);
         // $user->syncPermissions(['user-create']);
         // get all user permissions
-        $userPermissions = $user->getAllPermissions();
+        // $userPermissions = $user->getAllPermissions();
+        $userPermissions = $user->getOrgAllPermissions();
         foreach ($userPermissions as $permission) {
             // $permissions[$permission->name]['access'] = true;
             $permissions[$permission->name] = [
@@ -139,6 +140,7 @@ Route::get('check-auth', function () {
                 'access' => true,
             ];
         }
+
         return response()->json([
             'user' => [
                 'id'                     => $user->id,
@@ -155,11 +157,11 @@ Route::get('check-auth', function () {
             ],
             'status' => 'success'
         ]);
-    } catch (\Throwable $th) {
+    /*} catch (\Throwable $th) {
         return response()->json([
             'status' => 'error'
         ]);
-    }
+    }*/
 });
 
 Route::post('login', function (Request $request) {
