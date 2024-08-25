@@ -115,8 +115,14 @@ Route::group(['middleware' => ['auth']], function () {
 });
 
 Route::get('check-auth', function () {
-    try {
+    //try {
         $user = auth()->guard('web')->user();
+        if ( ! $user ) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Not authenticated',
+            ]);
+        }
         // get all permissions
         $allPermissions = Permission::get();
         $permissions = [];
@@ -157,13 +163,14 @@ Route::get('check-auth', function () {
             ],
             'status' => 'success'
         ]);
-    } catch (\Throwable $th) {
+    /*} catch (\Throwable $th) {
         return response()->json([
             'status' => 'error'
         ]);
-    }
+    }*/
 });
 
+use Illuminate\Support\Facades\Auth;
 Route::post('login', function (Request $request) {
     // check if username is email or username
     if ( filter_var($request->username, FILTER_VALIDATE_EMAIL) ) {
@@ -177,10 +184,23 @@ Route::post('login', function (Request $request) {
             'password' => $request->password,
         ];
     }
+    /*
+    Antes en Laravel 10
     if ( ! auth()->guard('web')->attempt($credentials, true) ) {
         return response()->json(['error' => 'Unauthorized'], 401);
     }
     return redirect()->intended('api/check-auth');
+    */
+    // Laravel 11
+    if (Auth::attempt($credentials)) {
+        $request->session()->regenerate();
+
+        return redirect()->intended('api/check-auth');
+    }
+
+    return back()->withErrors([
+        'email' => 'The provided credentials do not match our records.',
+    ])->onlyInput('email');
 });
 
 Route::get('logout', function () {
