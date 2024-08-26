@@ -70,6 +70,6 @@ class JobsController extends Controller {
             $data->onlyTrashed();
         }
     
-        return $data->paginate(5);
+        return $data->paginate(30);
     }
 }
