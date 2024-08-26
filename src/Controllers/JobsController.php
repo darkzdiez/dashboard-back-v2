@@ -40,7 +40,7 @@ class JobsController extends Controller {
         return response()->json($jobs);
     }
     public function all() {
-        return IndexJob::select(
+        $data = IndexJob::select(
             'uuid',
             'queue',
             'title',
@@ -59,7 +59,17 @@ class JobsController extends Controller {
             ->with([ 'user' => function ($query) {
                 $query->select('id', 'name');
             }])
-            ->orderByDesc('id')
-            ->paginate(20);
+            ->orderByDesc('id');
+
+        if ( request()->has('filters') && is_array(request()->filters) ) {
+            foreach (request()->filters as $key => $value) {
+                $data->where($key, 'like', '%'.$value.'%');
+            }
+        }
+        if ( request()->has('trash') && request()->trash == 1 ) {
+            $data->onlyTrashed();
+        }
+    
+        return $data->paginate(5);
     }
 }
