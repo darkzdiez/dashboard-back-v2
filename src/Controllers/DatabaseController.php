@@ -10,11 +10,13 @@ use App\Services\DatabaseBackup;
 class DatabaseController extends Controller {
     public function tables() {
         // Listar todas las tablas de la base de datos
-        return DB::connection()->getDoctrineSchemaManager()->listTableNames();
+        // return DB::connection()->getDoctrineSchemaManager()->listTableNames();
         // esto puede producir el siguiente error: Class "Doctrine\DBAL\Driver\AbstractMySQLDriver" not found
         // para solucionarlo, ejecutar: composer require doctrine/dbal
-        // $tables = DB::select('SHOW TABLES');
-        // return response()->json($tables);
+        $tables = DB::select('SHOW TABLES');
+        return response()->json(array_map(function($table) {
+            return $table->{'Tables_in_' . env('DB_DATABASE')};
+        }, $tables));
     }
     // Listar todos los grupos de tablas de la base de datos
     public function groups() {
@@ -82,7 +84,11 @@ class DatabaseController extends Controller {
         ]);
         // chequear que la tabla exista
         $table = request()->table;
-        $tables = DB::connection()->getDoctrineSchemaManager()->listTableNames();
+        // $tables = DB::connection()->getDoctrineSchemaManager()->listTableNames();
+        $tables = DB::select('SHOW TABLES');
+        $tables = array_map(function($table) {
+            return $table->{'Tables_in_' . env('DB_DATABASE')};
+        }, $tables);
         if (!in_array($table, $tables)) {
             return response()->json(['errors' => [ 'table' => ['Table not found'] ] ], 422);
         }
@@ -112,7 +118,11 @@ class DatabaseController extends Controller {
         ]);
         // chequear que la tabla exista
         $table = $request->table;
-        $tables = DB::connection()->getDoctrineSchemaManager()->listTableNames();
+        // $tables = DB::connection()->getDoctrineSchemaManager()->listTableNames();
+        $tables = DB::select('SHOW TABLES');
+        $tables = array_map(function($table) {
+            return $table->{'Tables_in_' . env('DB_DATABASE')};
+        }, $tables);
         if (!in_array($table, $tables)) {
             return response()->json(['errors' => [ 'table' => ['Table not found'] ] ], 422);
         }
@@ -142,7 +152,11 @@ class DatabaseController extends Controller {
         ]);
         // chequear que la tabla exista
         $table = $request->table;
-        $tables = DB::connection()->getDoctrineSchemaManager()->listTableNames();
+        // $tables = DB::connection()->getDoctrineSchemaManager()->listTableNames();
+        $tables = DB::select('SHOW TABLES');
+        $tables = array_map(function($table) {
+            return $table->{'Tables_in_' . env('DB_DATABASE')};
+        }, $tables);
         if (!in_array($table, $tables)) {
             return response()->json(['message' => 'Table not found'], 404);
         }
@@ -163,7 +177,11 @@ class DatabaseController extends Controller {
         ]);
         // chequear que la tabla exista
         $table = $request->table;
-        $tables = DB::connection()->getDoctrineSchemaManager()->listTableNames();
+        // $tables = DB::connection()->getDoctrineSchemaManager()->listTableNames();
+        $tables = DB::select('SHOW TABLES');
+        $tables = array_map(function($table) {
+            return $table->{'Tables_in_' . env('DB_DATABASE')};
+        }, $tables);
         if (!in_array($table, $tables)) {
             return response()->json(['message' => 'Table not found'], 404);
         }
@@ -228,7 +246,11 @@ class DatabaseController extends Controller {
         // iterar las tablas
         foreach ($tables as $table) {
             // chequear que la tabla exista
-            $tables = DB::connection()->getDoctrineSchemaManager()->listTableNames();
+            // $tables = DB::connection()->getDoctrineSchemaManager()->listTableNames();
+            $tables = DB::select('SHOW TABLES');
+            $tables = array_map(function($table) {
+                return $table->{'Tables_in_' . env('DB_DATABASE')};
+            }, $tables);
             if (!in_array($table, $tables)) {
                 return response()->json(['message' => 'Table not found'], 404);
             }
@@ -266,7 +288,11 @@ class DatabaseController extends Controller {
             foreach ($tables as $key => $table) {
                 
                 // Chequear que la tabla exista
-                $tables = DB::connection()->getDoctrineSchemaManager()->listTableNames();
+                // $tables = DB::connection()->getDoctrineSchemaManager()->listTableNames();
+                $tables = DB::select('SHOW TABLES');
+                $tables = array_map(function($table) {
+                    return $table->{'Tables_in_' . env('DB_DATABASE')};
+                }, $tables);
                 if (!in_array($table, $tables)) {
                     return response()->json(['message' => 'Table not found'], 404);
                 }
@@ -303,30 +329,39 @@ class DatabaseController extends Controller {
     }
 
     public function backupGenerate(Request $request) {
-        $backup = new DatabaseBackup();
-        $backup->generateBackupCompressed(
-            $filePath = storage_path('app/public/backup/database-'.time().'.sql'),
-            $ignoteDataTables = [
-                'failed_jobs',
-                'index_jobs',
-                'jobs',
-                'processed_jobs',
-                // 'shipment_tracks'
-            ]
+        __dashboardTask(
+            $title = "Generar backup de la base de datos",
+            $description = 'Generación de un backup simple de la base de datos',
+            $group = 'backup',
+            $icon = null,
+            $level = 'info',
+            function () {
+                $backup = new DatabaseBackup();
+                $backup->generateBackupCompressed(
+                    $filePath = storage_path('app/public/backup/database-'.time().'.sql'),
+                    $ignoteDataTables = [
+                        'failed_jobs',
+                        'index_jobs',
+                        'jobs',
+                        'processed_jobs',
+                        // 'shipment_tracks'
+                    ]
+                );
+        
+                // comprimir archivo en .zip
+                $zip = new \ZipArchive();
+                $zip->open($filePath.'.zip', \ZipArchive::CREATE);
+                $zip->addFile($filePath, basename($filePath));
+                $zip->close();
+            
+                return [
+                    'status' => 'success',
+                    'message' => 'Generado backup de la base de datos y limpiado de tablas de jobs',
+                    'path' => $filePath,
+                    'url' => url('storage/backup/'.basename($filePath)),
+                ];        
+            }
         );
-
-        // comprimir archivo en .zip
-        $zip = new \ZipArchive();
-        $zip->open($filePath.'.zip', \ZipArchive::CREATE);
-        $zip->addFile($filePath, basename($filePath));
-        $zip->close();
-    
-        return [
-            'status' => 'success',
-            'message' => 'Generado backup de la base de datos y limpiado de tablas de jobs',
-            'path' => $filePath,
-            'url' => url('storage/backup/'.basename($filePath)),
-        ];    
     }
 
     public function listBackups() {
