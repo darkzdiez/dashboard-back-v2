@@ -160,6 +160,8 @@ Route::get('check-auth', function () {
                 'organization_name'      => $user->organization->name,
                 'organization_type_id'   => $user->organization->type->id,
                 'organization_type_name' => $user->organization->type->name,
+                'organization_logo_url'  => $user->organization->logo_url,
+                'organization_favicon_url'  => $user->organization->favicon_url,
             ],
             'status' => 'success'
         ]);
