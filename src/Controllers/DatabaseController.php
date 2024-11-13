@@ -15,7 +15,11 @@ class DatabaseController extends Controller {
         // para solucionarlo, ejecutar: composer require doctrine/dbal
         $tables = DB::select('SHOW TABLES');
         return response()->json(array_map(function($table) {
-            return $table->{'Tables_in_' . env('DB_DATABASE')};
+            try {
+                return $table->{'Tables_in_' . env('DB_DATABASE')};
+            } catch (\Throwable $th) {
+                dd($table);
+            }
         }, $tables));
     }
     // Listar todos los grupos de tablas de la base de datos
@@ -337,7 +341,7 @@ class DatabaseController extends Controller {
             $level = 'info',
             function () {
                 $backup = new DatabaseBackup();
-                $backup->generateBackupCompressed(
+                $backup->generateBackupPerTable(
                     $filePath = storage_path('app/public/backup/database-'.time().'.sql'),
                     $ignoteDataTables = [
                         'failed_jobs',
