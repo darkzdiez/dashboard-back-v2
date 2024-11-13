@@ -341,7 +341,7 @@ class DatabaseController extends Controller {
             $level = 'info',
             function () {
                 $backup = new DatabaseBackup();
-                $backup->generateBackupPerTable(
+                $backup->generateBackupCompressed(
                     $filePath = storage_path('app/public/backup/database-'.time().'.sql'),
                     $ignoteDataTables = [
                         'failed_jobs',
