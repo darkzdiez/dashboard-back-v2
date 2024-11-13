@@ -5,7 +5,7 @@ namespace AporteWeb\Dashboard\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
-use App\Models\Note;
+use AporteWeb\Dashboard\Models\Note;
 
 class NotesController extends Controller {
     public function get($area, $refid) {
@@ -26,7 +26,7 @@ class NotesController extends Controller {
         }
         abort(500, 'El registro que intenta eliminar no existe');
     }
-    public function save(Request $request, $area, $refid) {
+    public function save(Request $request, $area = null, $refid = null) {
         // dd($request->all(), $request->has('title'));
         $request->validate([
             'title' => $request->has('title') ? 'required|string' : '',

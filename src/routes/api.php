@@ -21,7 +21,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get ('/{area}/{refid}', [NotesController::class, 'get']);
         Route::get ('/{id}',           [NotesController::class, 'find']);
         Route::post('/{id}/delete',    [NotesController::class, 'delete']);
-        Route::post('/{area}/{refid}', [NotesController::class, 'save']);
+        Route::post('/{area}/{refid?}', [NotesController::class, 'save']);
     });
     Route::group([
         'prefix' => 'database',
