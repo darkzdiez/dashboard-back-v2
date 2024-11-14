@@ -41,7 +41,12 @@ class NotesController extends Controller {
                 $item = new Note;
             }
             $item->area    = $area;
-            $item->refid   = $refid;
+            if ( $refid ) {
+                $item->refid   = $refid;
+            }
+            if ( $request->has('current_url') ) {
+                $item->current_url   = $request->current_url;
+            }
             $item->title   = $request->title;
             $item->content = $request->content;
             $item->level   = $request->level;
