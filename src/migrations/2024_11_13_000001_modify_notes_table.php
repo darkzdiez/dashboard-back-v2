@@ -13,6 +13,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('notes', function (Blueprint $table) {
+            $table->uuid('uuid')->after('id');
             $table->string('current_url')->nullable()->after('type');
         });
     }
@@ -25,6 +26,7 @@ return new class extends Migration
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
         Schema::table('notes', function (Blueprint $table) {
             $cols = [
+                'uuid',
                 'current_url',
             ];
             foreach ($cols as $col) {

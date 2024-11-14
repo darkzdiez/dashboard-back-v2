@@ -24,7 +24,7 @@ class Note extends Model {
     public static function boot() {
         parent::boot();
         self::creating(function ($model) {
-            // $model->uuid = __uuid();
+            $model->uuid = (string) \Illuminate\Support\Str::uuid();
         });
     }
 
