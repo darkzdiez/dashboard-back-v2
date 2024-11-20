@@ -102,12 +102,15 @@ trait WatchdogTrait {
         if ( is_array($permissions) ) {
             if ( ! $this->getInstance()->canAnyWildcard($permissions, $guardName) ) {
                 // detect source file
-                abort(403, 'Unauthorized action. ' . $trace);
+                // desloguear
+                auth()->logout();
+                abort(401, 'Unauthorized action. ' . $trace);
             }
         } else {
             if ( ! $this->getInstance()->canWildcard($permissions, $guardName) ) {
                 // dd(debug_backtrace());
-                abort(403, 'Unauthorized action. ' . $trace);
+                auth()->logout();
+                abort(401, 'Unauthorized action. ' . $trace);
             }
         }
     }
