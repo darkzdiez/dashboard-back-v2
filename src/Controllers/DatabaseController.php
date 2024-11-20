@@ -348,6 +348,8 @@ class DatabaseController extends Controller {
                         'index_jobs',
                         'jobs',
                         'processed_jobs',
+                        'shipment_track_events',
+                        'shipment_track_states'
                         // 'shipment_tracks'
                     ]
                 );
