@@ -348,8 +348,13 @@ class DatabaseController extends Controller {
                         'index_jobs',
                         'jobs',
                         'processed_jobs',
+                        /* Tablas pesadas */
+                        'notes',
+                        'pedido_sync_sap',
                         'shipment_track_events',
-                        'shipment_track_states'
+                        'shipment_track_states',
+                        'shipment_track_stops',
+                        'shipment_track_vessels',
                         // 'shipment_tracks'
                     ]
                 );
