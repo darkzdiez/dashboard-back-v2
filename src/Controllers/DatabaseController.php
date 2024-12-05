@@ -18,7 +18,7 @@ class DatabaseController extends Controller {
             try {
                 return $table->{'Tables_in_' . env('DB_DATABASE')};
             } catch (\Throwable $th) {
-                dd($table);
+                dd($table, $th->getMessage(), env('DB_DATABASE'));
             }
         }, $tables));
     }
