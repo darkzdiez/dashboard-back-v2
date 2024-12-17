@@ -22,7 +22,14 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 if (!function_exists('__dashboardTask')) {
-    function __dashboardTask($title = null, $description = null, $group = 'jobs', $icon = null, $level = 'info', Closure $next = null) {
+    function __dashboardTask(
+        $title = null,
+        $description = null,
+        $group = 'jobs',
+        $icon = null,
+        $level = 'info',
+        Closure $next = null
+    ) {
         // Doc
         // * * * * * cd /path-to-your-project && php artisan queue:work >> /dev/null 2>&1
         // php artisan queue:work
