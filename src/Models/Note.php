@@ -17,7 +17,9 @@ class Note extends Model {
         'refid',
         'title',
         'content',
-        'user_id'
+        'user_id',
+        'level',
+        'type'
     ];
 	protected $casts = [];
 
