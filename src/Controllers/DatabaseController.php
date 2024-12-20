@@ -341,7 +341,7 @@ class DatabaseController extends Controller {
             $level = 'info',
             function () {
                 $backup = new DatabaseBackup();
-                $backup->generateBackupCompressed(
+                $backup->generateBackupPerTable(
                     $filePath = storage_path('app/public/backup/database-'.time().'.sql'),
                     $ignoteDataTables = [
                         'failed_jobs',
@@ -358,12 +358,13 @@ class DatabaseController extends Controller {
                         // 'shipment_tracks'
                     ]
                 );
-        
+                /*
                 // comprimir archivo en .zip
                 $zip = new \ZipArchive();
                 $zip->open($filePath.'.zip', \ZipArchive::CREATE);
                 $zip->addFile($filePath, basename($filePath));
                 $zip->close();
+                */
             
                 return [
                     'status' => 'success',
