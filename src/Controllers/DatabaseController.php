@@ -8,6 +8,13 @@ use App\Http\Controllers\Controller;
 use App\Services\DatabaseBackup;
 
 class DatabaseController extends Controller {
+
+    private $DB_DATABASE;
+
+    public function __construct() {
+        $this->DB_DATABASE = env('DB_DATABASE');
+    }
+
     public function tables() {
         // Listar todas las tablas de la base de datos
         // return DB::connection()->getDoctrineSchemaManager()->listTableNames();
@@ -16,9 +23,9 @@ class DatabaseController extends Controller {
         $tables = DB::select('SHOW TABLES');
         return response()->json(array_map(function($table) {
             try {
-                return $table->{'Tables_in_' . env('DB_DATABASE')};
+                return $table->{'Tables_in_' . $this->DB_DATABASE};
             } catch (\Throwable $th) {
-                dd($table, $th->getMessage(), env('DB_DATABASE'));
+                dd($table, $th->getMessage(), $this->DB_DATABASE);
             }
         }, $tables));
     }
@@ -91,7 +98,7 @@ class DatabaseController extends Controller {
         // $tables = DB::connection()->getDoctrineSchemaManager()->listTableNames();
         $tables = DB::select('SHOW TABLES');
         $tables = array_map(function($table) {
-            return $table->{'Tables_in_' . env('DB_DATABASE')};
+            return $table->{'Tables_in_' . $this->DB_DATABASE};
         }, $tables);
         if (!in_array($table, $tables)) {
             return response()->json(['errors' => [ 'table' => ['Table not found'] ] ], 422);
@@ -125,7 +132,7 @@ class DatabaseController extends Controller {
         // $tables = DB::connection()->getDoctrineSchemaManager()->listTableNames();
         $tables = DB::select('SHOW TABLES');
         $tables = array_map(function($table) {
-            return $table->{'Tables_in_' . env('DB_DATABASE')};
+            return $table->{'Tables_in_' . $this->DB_DATABASE};
         }, $tables);
         if (!in_array($table, $tables)) {
             return response()->json(['errors' => [ 'table' => ['Table not found'] ] ], 422);
@@ -159,7 +166,7 @@ class DatabaseController extends Controller {
         // $tables = DB::connection()->getDoctrineSchemaManager()->listTableNames();
         $tables = DB::select('SHOW TABLES');
         $tables = array_map(function($table) {
-            return $table->{'Tables_in_' . env('DB_DATABASE')};
+            return $table->{'Tables_in_' . $this->DB_DATABASE};
         }, $tables);
         if (!in_array($table, $tables)) {
             return response()->json(['message' => 'Table not found'], 404);
@@ -184,7 +191,7 @@ class DatabaseController extends Controller {
         // $tables = DB::connection()->getDoctrineSchemaManager()->listTableNames();
         $tables = DB::select('SHOW TABLES');
         $tables = array_map(function($table) {
-            return $table->{'Tables_in_' . env('DB_DATABASE')};
+            return $table->{'Tables_in_' . $this->DB_DATABASE};
         }, $tables);
         if (!in_array($table, $tables)) {
             return response()->json(['message' => 'Table not found'], 404);
@@ -253,7 +260,7 @@ class DatabaseController extends Controller {
             // $tables = DB::connection()->getDoctrineSchemaManager()->listTableNames();
             $tables = DB::select('SHOW TABLES');
             $tables = array_map(function($table) {
-                return $table->{'Tables_in_' . env('DB_DATABASE')};
+                return $table->{'Tables_in_' . $this->DB_DATABASE};
             }, $tables);
             if (!in_array($table, $tables)) {
                 return response()->json(['message' => 'Table not found'], 404);
@@ -295,7 +302,7 @@ class DatabaseController extends Controller {
                 // $tables = DB::connection()->getDoctrineSchemaManager()->listTableNames();
                 $tables = DB::select('SHOW TABLES');
                 $tables = array_map(function($table) {
-                    return $table->{'Tables_in_' . env('DB_DATABASE')};
+                    return $table->{'Tables_in_' . $this->DB_DATABASE};
                 }, $tables);
                 if (!in_array($table, $tables)) {
                     return response()->json(['message' => 'Table not found'], 404);
