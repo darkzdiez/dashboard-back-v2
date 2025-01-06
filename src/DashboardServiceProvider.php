@@ -90,6 +90,7 @@ class DashboardServiceProvider extends ServiceProvider {
             'assets_version'      => $assets_version,
         ]);
 
+        /*
         // Añade el metodo toRawSql a los query builder
         \Illuminate\Database\Query\Builder::macro('toRawSql', function(){
             return array_reduce($this->getBindings(), function($sql, $binding){
@@ -99,6 +100,7 @@ class DashboardServiceProvider extends ServiceProvider {
         \Illuminate\Database\Eloquent\Builder::macro('toRawSql', function(){
             return ($this->getQuery()->toRawSql());
         });
+        */
 
         // Load Migrations
         if(is_dir(__DIR__.'/migrations')) {
