@@ -18,98 +18,98 @@ Route::group(['middleware' => ['auth']], function () {
         'prefix' => 'notes',
         'as'     => 'notes',
     ], function() {
-        Route::get ('/{area}/{refid}', [NotesController::class, 'get']);
-        Route::get ('/{id}',           [NotesController::class, 'find']);
-        Route::post('/{id}/delete',    [NotesController::class, 'delete']);
-        Route::post('/{area}/{refid?}', [NotesController::class, 'save']);
+        Route::get ('/{area}/{refid}', [NotesController::class, 'get'])->name('.get');
+        Route::get ('/{id}',           [NotesController::class, 'find'])->name('.find');
+        Route::post('/{id}/delete',    [NotesController::class, 'delete'])->name('.delete');
+        Route::post('/{area}/{refid?}', [NotesController::class, 'save'])->name('.save');
     });
     Route::group([
         'prefix' => 'database',
         'as'     => 'database',
     ], function() {
-        Route::get ('/tables', [DatabaseController::class, 'tables']);
-        Route::get ('/groups', [DatabaseController::class, 'groups']);
-        Route::post('/groups', [DatabaseController::class, 'groupsStore']);
-        Route::post('/group/delete', [DatabaseController::class, 'groupDelete']);
+        Route::get ('/tables', [DatabaseController::class, 'tables'])->name('.tables');
+        Route::get ('/groups', [DatabaseController::class, 'groups'])->name('.groups');
+        Route::post('/groups', [DatabaseController::class, 'groupsStore'])->name('.groupsStore');
+        Route::post('/group/delete', [DatabaseController::class, 'groupDelete'])->name('.groupDelete');
         
-        Route::post('/group/table/add', [DatabaseController::class, 'groupTableAdd']);
-        Route::post('/group/table/remove', [DatabaseController::class, 'groupTableRemove']);
-        Route::post('/group/seeders/generate', [DatabaseController::class, 'groupSeedersGenerate']);
-        Route::post('/group/seeders/execute', [DatabaseController::class, 'groupSeedersExecute']);
-        Route::post('/table/seeders/generate', [DatabaseController::class, 'tableSeedersGenerate']);
-        Route::post('/table/seeders/execute', [DatabaseController::class, 'tableSeedersExecute']);
+        Route::post('/group/table/add', [DatabaseController::class, 'groupTableAdd'])->name('.groupTableAdd');
+        Route::post('/group/table/remove', [DatabaseController::class, 'groupTableRemove'])->name('.groupTableRemove');
+        Route::post('/group/seeders/generate', [DatabaseController::class, 'groupSeedersGenerate'])->name('.groupSeedersGenerate');
+        Route::post('/group/seeders/execute', [DatabaseController::class, 'groupSeedersExecute'])->name('.groupSeedersExecute');
+        Route::post('/table/seeders/generate', [DatabaseController::class, 'tableSeedersGenerate'])->name('.tableSeedersGenerate');
+        Route::post('/table/seeders/execute', [DatabaseController::class, 'tableSeedersExecute'])->name('.tableSeedersExecute');
         
-        Route::post('/backup/generate', [DatabaseController::class, 'backupGenerate']);
-        Route::get ('/backup/list', [DatabaseController::class, 'listBackups']);
-        Route::post('/backup/delete', [DatabaseController::class, 'backupDelete']);
+        Route::post('/backup/generate', [DatabaseController::class, 'backupGenerate'])->name('.backupGenerate');
+        Route::get ('/backup/list', [DatabaseController::class, 'listBackups'])->name('.listBackups');
+        Route::post('/backup/delete', [DatabaseController::class, 'backupDelete'])->name('.backupDelete');
     });
     Route::group([
         'prefix' => 'profile',
         'as'     => 'profile',
     ], function() {
-        Route::get ('/',                [ProfileController::class, 'getProfile']);
-        Route::post('/',                [ProfileController::class, 'saveProfile']);
-        Route::post('/change-password', [ProfileController::class, 'changePassword']);
+        Route::get ('/',                [ProfileController::class, 'getProfile'])->name('.getProfile');
+        Route::post('/',                [ProfileController::class, 'saveProfile'])->name('.saveProfile');
+        Route::post('/change-password', [ProfileController::class, 'changePassword'])->name('.changePassword');
     });
 
     Route::group([
         'prefix' => 'jobs',
         'as'     => 'jobs',
     ], function() {
-        Route::any ('/',        [JobsController::class, 'all']);
-        Route::get ('/top-bar', [JobsController::class, 'topBar']);
+        Route::any ('/',        [JobsController::class, 'all'])->name('.all');
+        Route::get ('/top-bar', [JobsController::class, 'topBar'])->name('.topBar');
     });
 
     Route::group([
         'prefix' => 'permission',
         'as'     => 'permission',
     ], function() {
-        Route::post('/',             [PermissionController::class, 'all']);
-        Route::get ('/{id}',         [PermissionController::class, 'find']);
-        Route::post('/store/{id?}',  [PermissionController::class, 'store']);
-        Route::get ('/delete/{id}',  [PermissionController::class, 'delete']);
-        Route::get ('/restore/{id}', [PermissionController::class, 'restore']);
-        Route::post('/generate-seed-from-data-model',  [PermissionController::class, 'generateSeedFromDataModel']);
+        Route::post('/',             [PermissionController::class, 'all'])->name('.all');
+        Route::get ('/{id}',         [PermissionController::class, 'find'])->name('.find');
+        Route::post('/store/{id?}',  [PermissionController::class, 'store'])->name('.store');
+        Route::get ('/delete/{id}',  [PermissionController::class, 'delete'])->name('.delete');
+        Route::get ('/restore/{id}', [PermissionController::class, 'restore'])->name('.restore');
+        Route::post('/generate-seed-from-data-model',  [PermissionController::class, 'generateSeedFromDataModel'])->name('.generateSeedFromDataModel');
     });
     
     Route::group([
         'prefix' => 'group',
         'as'     => 'group',
     ], function() {
-        Route::post('/',             [GroupController::class, 'all']);
-        Route::get ('/{id}',         [GroupController::class, 'find']);
-        Route::post('/store/{id?}',  [GroupController::class, 'store']);
-        Route::get ('/delete/{id}',  [GroupController::class, 'delete']);
-        Route::get ('/restore/{id}', [GroupController::class, 'restore']);
-        Route::post('/list-select',  [GroupController::class, 'listSelect']);
-        Route::post('/generate-seed-from-data-model',  [GroupController::class, 'generateSeedFromDataModel']);
+        Route::post('/',             [GroupController::class, 'all'])->name('.all');
+        Route::get ('/{id}',         [GroupController::class, 'find'])->name('.find');
+        Route::post('/store/{id?}',  [GroupController::class, 'store'])->name('.store');
+        Route::get ('/delete/{id}',  [GroupController::class, 'delete'])->name('.delete');
+        Route::get ('/restore/{id}', [GroupController::class, 'restore'])->name('.restore');
+        Route::post('/list-select',  [GroupController::class, 'listSelect'])->name('.listSelect');
+        Route::post('/generate-seed-from-data-model',  [GroupController::class, 'generateSeedFromDataModel'])->name('.generateSeedFromDataModel');
     });
     
     Route::group([
         'prefix' => 'cron',
         'as'     => 'cron',
     ], function() {
-        Route::post('/',             [CronController::class, 'all']);
-        Route::get ('/{id}',         [CronController::class, 'find']);
-        Route::post('/store/{id?}',  [CronController::class, 'store']);
-        Route::get ('/delete/{id}',  [CronController::class, 'delete']);
-        Route::get ('/restore/{id}', [CronController::class, 'restore']);
-        Route::post('/list-select',  [CronController::class, 'listSelect']);
+        Route::post('/',             [CronController::class, 'all'])->name('.all');
+        Route::get ('/{id}',         [CronController::class, 'find'])->name('.find');
+        Route::post('/store/{id?}',  [CronController::class, 'store'])->name('.store');
+        Route::get ('/delete/{id}',  [CronController::class, 'delete'])->name('.delete');
+        Route::get ('/restore/{id}', [CronController::class, 'restore'])->name('.restore');
+        Route::post('/list-select',  [CronController::class, 'listSelect'])->name('.listSelect');
     });
 
     Route::group([
         'prefix' => 'user',
         'as'     => 'user',
     ], function() {
-        Route::post('/',             [UserController::class, 'all']);
-        Route::get ('/{id}',         [UserController::class, 'find']);
-        Route::post('/store/{id?}',  [UserController::class, 'store']);
-        Route::get ('/delete/{id}',  [UserController::class, 'delete']);
-        Route::get ('/restore/{id}', [UserController::class, 'restore']);
-        Route::post('/list-select',  [UserController::class, 'listSelect']);
-        Route::post('/generate-seed-from-data-model',  [UserController::class, 'generateSeedFromDataModel']);
-        Route::post('/login-as',     [UserController::class, 'loginAs']);
-        Route::post('/return-to-original-user' , [UserController::class, 'returnToOriginalUser']);
+        Route::post('/',             [UserController::class, 'all'])->name('.all');
+        Route::get ('/{id}',         [UserController::class, 'find'])->name('.find');
+        Route::post('/store/{id?}',  [UserController::class, 'store'])->name('.store');
+        Route::get ('/delete/{id}',  [UserController::class, 'delete'])->name('.delete');
+        Route::get ('/restore/{id}', [UserController::class, 'restore'])->name('.restore');
+        Route::post('/list-select',  [UserController::class, 'listSelect'])->name('.listSelect');
+        Route::post('/generate-seed-from-data-model',  [UserController::class, 'generateSeedFromDataModel'])->name('.generateSeedFromDataModel');
+        Route::post('/login-as',     [UserController::class, 'loginAs'])->name('.loginAs');
+        Route::post('/return-to-original-user' , [UserController::class, 'returnToOriginalUser'])->name('.returnToOriginalUser');
     });
 
 });
