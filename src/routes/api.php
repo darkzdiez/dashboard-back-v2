@@ -147,6 +147,10 @@ Route::get('check-auth', function () {
             ];
         }
 
+        $config = \App\Models\ConfigGeneral::select([
+            'cotizacion_default_tipo_de_contenedor_id',
+        ])->first()->toArray();
+
         return response()->json([
             'user' => [
                 'id'                     => $user->id,
@@ -163,7 +167,8 @@ Route::get('check-auth', function () {
                 'organization_logo_url'  => $user->organization->logo_url,
                 'organization_favicon_url'  => $user->organization->favicon_url,
             ],
-            'status' => 'success'
+            'status' => 'success',
+            'config' => $config,
         ]);
     /*} catch (\Throwable $th) {
         return response()->json([
