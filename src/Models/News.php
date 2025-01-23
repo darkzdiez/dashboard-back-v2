@@ -10,11 +10,28 @@ class News extends Model {
     protected $appends = [
         'created_at_formatted',
     ];
-    protected $fillable = [];
+    protected $fillable = [
+        'title',
+        'description_short',
+        'description',
+        'image',
+        'url',
+        'icon',
+        'featured',
+        'user_id',
+    ];
 	protected $casts = [];
     protected $hidden = [
         'id',
     ];
+
+    public static function boot() {
+        parent::boot();
+        self::creating(function ($model) {
+            $model->uuid    = (string) Str::uuid();
+            $model->user_id = auth()->user()->id;
+        });
+    }
 
     public function getCreatedAtFormattedAttribute() {
         // 23/10/2023 12:00:00 PM

@@ -65,8 +65,8 @@ Route::group(['middleware' => ['auth']], function () {
         'prefix' => 'news',
         'as'     => 'news',
     ], function() {
-        Route::get ('/top-bar',         [NewsController::class, 'topBar'])->name('.topBar');
         Route::post('/',                [NewsController::class, 'all'])->name('.all');
+        Route::get ('/top-bar',         [NewsController::class, 'topBar'])->name('.topBar');
         Route::get ('/{id}',            [NewsController::class, 'find'])->name('.find');
         Route::post('/store/{id?}',     [NewsController::class, 'store'])->name('.store');
         Route::post('/{id}/delete',     [NewsController::class, 'delete'])->name('.delete');

@@ -19,55 +19,40 @@ class NewsController extends Controller {
     }
     
     public function all() {
-        return News::orderBy('group_prefix', 'asc')
-            ->orderBy('name', 'asc')
+        return News::orderBy('id', 'desc')
             ->paginate(100);
     }
 
     public function find($id) {
-        return News::find($id);
+        $item = News::where('uuid', $id)->first();
+        if ($item) {
+            return $item;
+        }
+        return response()->json(['message' => 'Item not found'], 404);
     }
 
     public function store(Request $request, $id = null) {
-        // validate the request
         $request->validate([
-            'name'        => 'required|string|max:255|unique:permissions' . ($id ? ",name,$id" : ''),
-            'guard_name'  => 'required|string|max:255',
-            'description' => 'nullable|string|max:255',
+            'title'             => 'required|string|max:255',
+            'description_short' => 'required|string',
+            'description'       => 'nullable|string',
         ]);
-        // store a new permission
-        if ($id) {
-            $permission = News::find($id);
+        // store a new item
+        if ($id && ! $request->has('__form-input-copy') ) {
+            $item = News::where('uuid', $id)->first();
         } else {
-            $permission = new News;
-            $permission->uuid = Str::uuid();
+            $item = new News;
         }
-        if ( request()->has('assistant') && request()->assistant == 'crud-basic' ) {
-            $permissions = [
-                '-data-import' => 'Importar',
-                '-data-export' => 'Exportar',
-                '-restore'     => 'Restaurar',
-                '-delete'      => 'Eliminar',
-                '-edit'        => 'Editar',
-                '-create'      => 'Crear'
-            ];
-            foreach ($permissions as $key => $description) {
-                $permission = new News;
-                $permission->uuid         = Str::uuid();
-                $permission->group_prefix = $request->group_prefix;
-                $permission->name         = $request->name . $key;
-                $permission->guard_name   = $request->guard_name;
-                $permission->description  = $description . ' ' . $request->description;
-                $permission->save();
-            }
-        } else {
-            $permission->group_prefix = $request->group_prefix;
-            $permission->name         = Str::slug($request->name);
-            $permission->guard_name   = $request->guard_name;
-            $permission->description  = $request->description ? $request->description : $request->name;
-            $permission->save();
-        }
-        return $permission;
+        $item->title             = $request->title;
+        $item->description_short = $request->description_short;
+        $item->description       = $request->description;
+        $item->save();
+
+        // limpiar cache
+        Cache::forget('news-list-torbar');
+
+        return $item;
+
     }
 
     public function delete($id) {
@@ -80,22 +65,5 @@ class NewsController extends Controller {
         $permission = News::withTrashed()->find($id);
         $permission->restore();
         return $permission;
-    }
-
-    public function generateSeedFromDataModel() {
-        $data = News::all();
-        $data = $data->map(function($item) {
-            return [
-                'name'         => $item->name,
-                'guard_name'   => $item->guard_name,
-                'description'  => $item->description,
-                'group_prefix' => $item->group_prefix,
-            ];
-        });
-        
-        // generate seed on database/seeders/permissions.json
-        $path = database_path('seeders/permissions.json');
-        file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT));
-        return response()->json(['message' => 'Seed generated'], 200);
     }
 }
