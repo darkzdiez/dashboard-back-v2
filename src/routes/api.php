@@ -12,6 +12,7 @@ use AporteWeb\Dashboard\Controllers\NotesController;
 use AporteWeb\Dashboard\Controllers\JobsController;
 use AporteWeb\Dashboard\Controllers\DatabaseController;
 use AporteWeb\Dashboard\Controllers\ProfileController;
+use AporteWeb\Dashboard\Controllers\NewsController;
 
 Route::group(['middleware' => ['auth']], function () {
     Route::group([
@@ -58,6 +59,17 @@ Route::group(['middleware' => ['auth']], function () {
     ], function() {
         Route::any ('/',        [JobsController::class, 'all'])->name('.all');
         Route::get ('/top-bar', [JobsController::class, 'topBar'])->name('.topBar');
+    });
+
+    Route::group([
+        'prefix' => 'news',
+        'as'     => 'news',
+    ], function() {
+        Route::get ('/top-bar',         [NewsController::class, 'topBar'])->name('.topBar');
+        Route::post('/',                [NewsController::class, 'all'])->name('.all');
+        Route::get ('/{id}',            [NewsController::class, 'find'])->name('.find');
+        Route::post('/store/{id?}',     [NewsController::class, 'store'])->name('.store');
+        Route::post('/{id}/delete',     [NewsController::class, 'delete'])->name('.delete');
     });
 
     Route::group([
