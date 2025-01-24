@@ -9,9 +9,19 @@ use Junges\ACL\Models\Permission;
 
 class PermissionController extends Controller {
     public function all() {
-        return Permission::orderBy('group_prefix', 'asc')
-            ->orderBy('name', 'asc')
-            ->paginate(100);
+        $paginator = Permission::orderBy('group_prefix', 'asc')->orderBy('name', 'asc');
+        if ( request()->has('filters') && is_array(request()->filters) ) {
+            foreach (request()->filters as $key => $value) {
+                $paginator->where($key, 'like', '%'.$value.'%');
+            }
+        }
+        if ( request()->has('trash') && request()->trash == 1 ) {
+            $paginator->onlyTrashed();
+        }
+
+        $paginator = $paginator->paginate(20);
+   
+        return $paginator;    
     }
 
     public function find($id) {
@@ -61,16 +71,23 @@ class PermissionController extends Controller {
     }
 
     public function delete($id) {
-        $permission = Permission::find($id);
-        $permission->delete();
-        return $permission;
+        $item = Permission::where('uuid', $id)->first();
+        $item->delete();
+        return $item;
     }
 
     public function restore($id) {
-        $permission = Permission::withTrashed()->find($id);
-        $permission->restore();
-        return $permission;
+        $item = Permission::withTrashed()->where('uuid', $id)->first();
+        $item->restore();
+        return $item;
     }
+
+    public function destroy($id) {
+        $item = Permission::withTrashed()->where('uuid', $id)->first();
+        $item->forceDelete();
+        return $item;
+    }
+
 
     public function generateSeedFromDataModel() {
         $data = Permission::all();
