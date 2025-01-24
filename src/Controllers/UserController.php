@@ -13,7 +13,7 @@ class UserController extends Controller {
         // traer la organización, pero solo el nombre
         $paginator = User::with(['organization' => function($query) {
             $query->select('id', 'uuid', 'name');
-        }, 'groups:name'])
+        }, 'groups:name,uuid'])
             ->orderBy('id', 'desc');
         if ( request()->has('filters') && is_array(request()->filters) ) {
             foreach (request()->filters as $key => $value) {
