@@ -25,19 +25,19 @@ class PermissionController extends Controller {
     }
 
     public function find($id) {
-        return Permission::find($id);
+        return Permission::where('uuid', $id)->first();
     }
 
     public function store(Request $request, $id = null) {
         // validate the request
         $request->validate([
-            'name'        => 'required|string|max:255|unique:permissions' . ($id ? ",name,$id" : ''),
+            'name'        => 'required|string|max:255|unique:permissions,name,' . ($id ? $id . ',uuid' : ''),
             'guard_name'  => 'required|string|max:255',
             'description' => 'nullable|string|max:255',
         ]);
         // store a new permission
         if ($id) {
-            $permission = Permission::find($id);
+            $permission = Permission::where('uuid', $id)->first();
         } else {
             $permission = new Permission;
             $permission->uuid = Str::uuid();
