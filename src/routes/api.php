@@ -81,6 +81,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::post('/store/{id?}',  [PermissionController::class, 'store'])->name('.store');
         Route::get ('/delete/{id}',  [PermissionController::class, 'delete'])->name('.delete');
         Route::get ('/restore/{id}', [PermissionController::class, 'restore'])->name('.restore');
+        Route::post('/list-select',  [PermissionController::class, 'listSelect'])->name('.listSelect');
         Route::post('/generate-seed-from-data-model',  [PermissionController::class, 'generateSeedFromDataModel'])->name('.generateSeedFromDataModel');
     });
     

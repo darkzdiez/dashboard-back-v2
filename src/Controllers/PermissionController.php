@@ -24,6 +24,23 @@ class PermissionController extends Controller {
         return $paginator;    
     }
 
+    public function allWithoutPagination() {
+        return Permission::orderBy('group_prefix', 'asc')->orderBy('name', 'asc')->get();
+    }
+
+    public function listSelect(Request $request) {
+        $data = Permission::orderBy('id', 'desc');
+        if ( request()->has('search') && strlen(request()->search) ) {
+            $data->where(function($query) {
+                $keys = ['name'];
+                foreach ($keys as $key => $colName) {
+                    $query->orWhere($colName, 'like', '%'.request()->search.'%');
+                }
+            });
+        }
+        return $data->get();    
+    }
+
     public function find($id) {
         return Permission::where('uuid', $id)->first();
     }
