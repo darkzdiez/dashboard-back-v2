@@ -55,7 +55,7 @@ class DashboardServiceProvider extends ServiceProvider {
             }
         });
         request()->merge($request);
-
+        /*
         if (config('app.debug')){
             $assets_version = hash('md5', rand());
         } else {
@@ -86,6 +86,8 @@ class DashboardServiceProvider extends ServiceProvider {
                 }            
             }
         }
+        */
+        $assets_version = env('ASSETS_VERSION');
         view()->share([
             'assets_version'      => $assets_version,
         ]);
