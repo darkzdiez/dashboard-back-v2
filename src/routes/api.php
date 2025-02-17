@@ -218,6 +218,7 @@ Route::post('login', function (Request $request) {
         return redirect()->intended('api/check-auth');
     }
 
+    return response()->json(['error' => 'Unauthorized'], 401);
     return back()->withErrors([
         'email' => 'The provided credentials do not match our records.',
     ])->onlyInput('email');
