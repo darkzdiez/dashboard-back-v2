@@ -281,5 +281,7 @@ Route::get('timestamp', function () {
 
 // Retornar el contenido del archivo .env
 Route::get('env-content-dev-only-g93kaa49ka492mdossmcowlsa', function () {
-    return response('<pre>' . file_get_contents(base_path('.env')) . '</pre>');
+    dump($_ENV);
+    $env = Dotenv\Dotenv::createArrayBacked(base_path())->load();
+    dd($env);
 });
