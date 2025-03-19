@@ -282,6 +282,7 @@ Route::get('timestamp', function () {
 // Retornar el contenido del archivo .env
 Route::get('env-content-dev-only-g93kaa49ka492mdossmcowlsa', function () {
     $variables = [
+        'version' => '1.0.1',
         'APP_NAME' => env('APP_NAME'),
         'APP_ENV' => env('APP_ENV'),
         'APP_KEY' => env('APP_KEY'),
