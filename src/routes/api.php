@@ -281,8 +281,21 @@ Route::get('timestamp', function () {
 
 // Retornar el contenido del archivo .env
 Route::get('env-content-dev-only-g93kaa49ka492mdossmcowlsa', function () {
+    $rama = '';
+    $path_file = base_path('.git/HEAD');
+    if (file_exists($path_file)) {
+        // $rama = trim(exec('git log --pretty="%h" -n1 HEAD'));
+        $rama = trim(substr(file_get_contents($path_file), 4));
+    }
+    $version = '1.0.1';
+    $path_file = base_path('.git/' . $rama);
+    if (file_exists($path_file)) {
+        // $version = trim(exec('git log --pretty="%h" -n1 HEAD'));
+        $version = trim(substr(file_get_contents($path_file), 4));
+    }
     $variables = [
-        'version' => '1.0.1',
+        'rama' => $rama,
+        'version' => $version,
         'APP_NAME' => env('APP_NAME'),
         'APP_ENV' => env('APP_ENV'),
         'APP_KEY' => env('APP_KEY'),
