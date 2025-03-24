@@ -72,4 +72,20 @@ class JobsController extends Controller {
     
         return $data->paginate(30);
     }
+
+    public function callback($uuid) {
+        $job = IndexJob::where('uuid', $uuid)->first();
+        if ($job) {
+            return response()->json(json_decode($job->callback));
+        }
+        return response()->json(['error' => 'Job not found'], 404);
+    }
+
+    public function queries($uuid) {
+        $job = IndexJob::where('uuid', $uuid)->first();
+        if ($job) {
+            return response()->json($job->queries);
+        }
+        return response()->json(['error' => 'Job not found'], 404);
+    }
 }

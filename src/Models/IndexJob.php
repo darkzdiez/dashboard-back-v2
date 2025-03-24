@@ -16,7 +16,10 @@ class IndexJob extends Model {
         'user_name'
     ];
     protected $fillable = [];
-	protected $casts = [];
+	protected $casts = [
+        'callbacks' => 'array',
+        'queries' => 'array',
+    ];
     protected $hidden = [
         'id',
         'user_id',

@@ -59,6 +59,8 @@ Route::group(['middleware' => ['auth']], function () {
     ], function() {
         Route::any ('/',        [JobsController::class, 'all'])->name('.all');
         Route::get ('/top-bar', [JobsController::class, 'topBar'])->name('.topBar');
+        Route::get ('/{uuid}/callback', [JobsController::class, 'callback'])->name('.callback');
+        Route::get ('/{uuid}/queries', [JobsController::class, 'queries'])->name('.queries');
     });
 
     Route::group([
