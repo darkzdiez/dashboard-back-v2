@@ -362,5 +362,15 @@ Route::get('env-content-dev-only-g93kaa49ka492mdossmcowlsa', function () {
         'ENDPOINT_PEDIDOS_EN_TRANSITO' => env('ENDPOINT_PEDIDOS_EN_TRANSITO'),
         'ENDPOINT_NOTIFY_SYNC_PEDIDOS_EN_TRANSITO' => env('ENDPOINT_NOTIFY_SYNC_PEDIDOS_EN_TRANSITO'),
     ];
-    return response()->json($variables);
+
+    // capturar las cabeceras
+    $headers = [];
+    foreach (getallheaders() as $name => $value) {
+        $headers[$name] = $value;
+    }
+    
+    return response()->json([
+        'env' => $variables,
+        'headers' => $headers,
+    ]);
 });
