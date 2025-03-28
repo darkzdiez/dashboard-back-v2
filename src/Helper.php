@@ -28,6 +28,7 @@ if (!function_exists('__dashboardTask')) {
         $group = 'jobs',
         $icon = null,
         $level = 'info',
+        $queue = 'default',
         Closure $next = null
     ) {
         // Doc
@@ -39,7 +40,6 @@ if (!function_exists('__dashboardTask')) {
         // Generar el uuid
         // /usr/local/bin/php -d register_argc_argv=On -f /home/d10osolecom/deluca.osole.com.ar/artisan queue:work --timeout=12000 --stop-when-empty --once
         $uuid  = (string) Str::uuid();
-        $queue = 'default';
         $user_id = null;
         if ( auth()->check() ) {
             $user_id = auth()->user()->id ?? null;
