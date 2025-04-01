@@ -341,12 +341,13 @@ class DatabaseController extends Controller {
 
     public function backupGenerate(Request $request) {
         __dashboardTask(
-            $title = "Generar backup de la base de datos",
-            $description = 'Generación de un backup simple de la base de datos',
-            $group = 'backup',
-            $icon = null,
-            $level = 'info',
-            function () {
+            title: "Generar backup de la base de datos",
+            description: 'Generación de un backup simple de la base de datos',
+            group: 'backup',
+            icon: null,
+            level: 'info',
+            queue: 'default',
+            next: function () {
                 $backup = new DatabaseBackup();
                 $backup->generateBackupPerTable(
                     $filePath = storage_path('app/public/backup/database-'.time().'.sql'),

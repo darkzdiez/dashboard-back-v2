@@ -29,7 +29,7 @@ if (!function_exists('__dashboardTask')) {
         $icon = null,
         $level = 'info',
         $queue = 'default',
-        Closure $next = null
+        Closure $next
     ) {
         // Doc
         // * * * * * cd /path-to-your-project && php artisan queue:work >> /dev/null 2>&1
