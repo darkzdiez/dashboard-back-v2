@@ -10,6 +10,8 @@ class IndexJob extends Model {
     protected $appends = [
         'created_at_formatted',
         'created_at_human',
+        'started_at_formatted',
+        'finished_at_formatted',
         'time_execution_human',
         'memory_usage_human',
         'queries_time_human',
@@ -19,6 +21,8 @@ class IndexJob extends Model {
 	protected $casts = [
         'callbacks' => 'array',
         'queries' => 'array',
+        'started_at' => 'datetime',
+        'finished_at' => 'datetime',
     ];
     protected $hidden = [
         'id',
@@ -35,6 +39,16 @@ class IndexJob extends Model {
 
     public function getCreatedAtHumanAttribute() {
         return $this->created_at->diffForHumans();
+    }
+
+    public function getStartedAtFormattedAttribute() {
+        // 23/10/2023 12:00:00 PM
+        return $this->started_at ? $this->started_at->format('d/m/Y h:i:s A') : null;
+    }
+
+    public function getFinishedAtFormattedAttribute() {
+        // 23/10/2023 12:00:00 PM
+        return $this->finished_at ? $this->finished_at->format('d/m/Y h:i:s A') : null;
     }
 
     public function user() {
