@@ -52,6 +52,8 @@ class JobsController extends Controller {
             'level',
             'status',
             'created_at',
+            'started_at',
+            'finished_at',
             'user_id',
             'time_execution',
             'memory_usage',
