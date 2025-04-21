@@ -82,6 +82,7 @@ if (!function_exists('__dashboardTask')) {
 
             DB::table('index_jobs')->where('uuid', $uuid)->update([
                 'status' => 'running',
+                'started_at' => \Carbon\Carbon::Now()
             ]);
             // Cambiar el status del archivo a running
             Storage::disk('local')->put('dashboard-task/' . $uuid . '.json', json_encode(['status' => 'running'], JSON_PRETTY_PRINT));
@@ -121,6 +122,7 @@ if (!function_exists('__dashboardTask')) {
             DB::table('index_jobs')->where('uuid', $uuid)->update([
                 'callback' => json_encode($callback, JSON_PRETTY_PRINT),
                 'status' => $status,
+                'finished_at' => \Carbon\Carbon::Now(),
                 'queries' => json_encode($queries, JSON_PRETTY_PRINT),
                 'queries_time' => array_sum(array_column($queries, 'time')),
                 'queries_count' => count($queries),

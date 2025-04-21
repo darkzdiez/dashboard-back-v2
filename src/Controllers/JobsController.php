@@ -24,6 +24,8 @@ class JobsController extends Controller {
                     // format created_at and updated_at 30/11/2023 10:48:00 PM
                     DB::raw('DATE_FORMAT(created_at, "%d/%m/%Y %h:%i:%s %p") as created_at'),
                     DB::raw('DATE_FORMAT(updated_at, "%d/%m/%Y %h:%i:%s %p") as updated_at'),
+                    DB::raw('DATE_FORMAT(started_at, "%d/%m/%Y %h:%i:%s %p") as started_at'),
+                    DB::raw('DATE_FORMAT(finished_at, "%d/%m/%Y %h:%i:%s %p") as finished_at'),
                     // duration
                     DB::raw('TIMESTAMPDIFF(SECOND, created_at, updated_at) as duration'),
                     // duration human
