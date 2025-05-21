@@ -23,6 +23,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get ('/{id}',           [NotesController::class, 'find'])->name('.find');
         Route::post('/{id}/delete',    [NotesController::class, 'delete'])->name('.delete');
         Route::post('/{area}/{refid?}', [NotesController::class, 'save'])->name('.save');
+        Route::post('/{area}/{refid?}/pagination', [NotesController::class, 'pagination'])->name('.pagination');
     });
     Route::group([
         'prefix' => 'database',

@@ -15,6 +15,13 @@ class NotesController extends Controller {
             ->orderByDesc('id')
             ->get();
     }
+    public function pagination($area, $refid) {
+        return Note::with('user')
+            ->where('area', $area)
+            ->where('refid', $refid)
+            ->orderByDesc('id')
+            ->paginate(20);
+    }
     public function find($id) {
         return Note::with('user')->find($id);
     }
