@@ -65,12 +65,12 @@ if (!function_exists('__dashboardTask')) {
         Storage::disk('local')->put('dashboard-task/' . $uuid . '.json', json_encode(['status' => 'waiting'], JSON_PRETTY_PRINT));
         
         // Cache::forget('jobs.' . $user_id);
-        Cache::flush();
+        // Cache::flush();
         
         // Utilizar dispatch para añadir la tarea a la cola, esto lo almacenará en la tabla jobs
         $dispatch = dispatch(function () use ($uuid, $next, $user_id) {
             if ( $user_id ) {
-                // Auth::loginUsingId($user_id);
+                Auth::loginUsingId($user_id);
             }
             Log::info('Starting job with UUID: ' . $uuid);
             Log::info('Sin login user_id: ' . $user_id);
@@ -89,7 +89,7 @@ if (!function_exists('__dashboardTask')) {
             // Cambiar el status del archivo a running
             Storage::disk('local')->put('dashboard-task/' . $uuid . '.json', json_encode(['status' => 'running'], JSON_PRETTY_PRINT));
             // Cache::forget('jobs.' . $user_id);
-            Cache::flush();
+            // Cache::flush();
             DB::enableQueryLog();
             try {
                 // Eejecutar la clausura y retornar el resultado
@@ -99,7 +99,7 @@ if (!function_exists('__dashboardTask')) {
                 // Cambiar el status del archivo a finish
                 Storage::disk('local')->put('dashboard-task/' . $uuid . '.json', json_encode(['status' => 'finish'] + $callback, JSON_PRETTY_PRINT));
                 // Cache::forget('jobs.' . $user_id);
-                Cache::flush();
+                // Cache::flush();
             } catch (\Throwable $th) {
 
                 $callback = [
@@ -112,7 +112,7 @@ if (!function_exists('__dashboardTask')) {
                 // Cambiar el status del archivo a failed
                 Storage::disk('local')->put('dashboard-task/' . $uuid . '.json', json_encode($callback, JSON_PRETTY_PRINT));
                 // Cache::forget('jobs.' . $user_id);
-                Cache::flush();
+                // Cache::flush();
                 Log::error($th);
             }
             $queries = DB::getRawQueryLog();
