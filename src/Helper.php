@@ -18,7 +18,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\// ;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 if (!function_exists('__dashboardTask')) {
@@ -41,8 +41,8 @@ if (!function_exists('__dashboardTask')) {
         // /usr/local/bin/php -d register_argc_argv=On -f /home/d10osolecom/deluca.osole.com.ar/artisan queue:work --timeout=12000 --stop-when-empty --once
         $uuid  = (string) Str::uuid();
         $user_id = null;
-        if ( // ()->check() ) {
-            $user_id = // ()->user()->id ?? null;
+        if ( auth()->check() ) {
+            $user_id = auth()->user()->id ?? null;
         }
         // Insertar en la tabla de index_jobs
         DB::table('index_jobs')->insert([
