@@ -41,8 +41,8 @@ if (!function_exists('__dashboardTask')) {
         // /usr/local/bin/php -d register_argc_argv=On -f /home/d10osolecom/deluca.osole.com.ar/artisan queue:work --timeout=12000 --stop-when-empty --once
         $uuid  = (string) Str::uuid();
         $user_id = null;
-        if ( auth()->check() ) {
-            $user_id = auth()->user()->id ?? null;
+        if ( Auth::check() ) {
+            $user_id = Auth::id();
         }
         // Insertar en la tabla de index_jobs
         DB::table('index_jobs')->insert([
