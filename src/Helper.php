@@ -18,7 +18,7 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\// ;
 use Illuminate\Support\Facades\Log;
 
 if (!function_exists('__dashboardTask')) {
@@ -41,8 +41,8 @@ if (!function_exists('__dashboardTask')) {
         // /usr/local/bin/php -d register_argc_argv=On -f /home/d10osolecom/deluca.osole.com.ar/artisan queue:work --timeout=12000 --stop-when-empty --once
         $uuid  = (string) Str::uuid();
         $user_id = null;
-        if ( auth()->check() ) {
-            $user_id = auth()->user()->id ?? null;
+        if ( // ()->check() ) {
+            $user_id = // ()->user()->id ?? null;
         }
         // Insertar en la tabla de index_jobs
         DB::table('index_jobs')->insert([
@@ -70,8 +70,10 @@ if (!function_exists('__dashboardTask')) {
         // Utilizar dispatch para añadir la tarea a la cola, esto lo almacenará en la tabla jobs
         $dispatch = dispatch(function () use ($uuid, $next, $user_id) {
             if ( $user_id ) {
-                Auth::loginUsingId($user_id);
+                // Auth::loginUsingId($user_id);
             }
+            Log::info('Starting job with UUID: ' . $uuid);
+            Log::info('Sin login user_id: ' . $user_id);
             // Se define el tiempo limite de ejecución y la memoria
             set_time_limit(0); // 0 = no time limit
             ini_set('memory_limit', '-1'); // -1 = no memory limit
