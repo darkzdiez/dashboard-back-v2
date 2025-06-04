@@ -73,7 +73,7 @@ if (!function_exists('__dashboardTask')) {
                 Auth::loginUsingId($user_id);
             }
             Log::info('Starting job with UUID: ' . $uuid);
-            Log::info('Sin login user_id: ' . $user_id);
+            Log::info('Con login user_id: ' . $user_id);
             // Se define el tiempo limite de ejecución y la memoria
             set_time_limit(0); // 0 = no time limit
             ini_set('memory_limit', '-1'); // -1 = no memory limit
