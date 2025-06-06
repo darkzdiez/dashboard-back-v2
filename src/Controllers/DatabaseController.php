@@ -4,6 +4,7 @@ namespace AporteWeb\Dashboard\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\Controller;
 use App\Services\DatabaseBackup;
 
@@ -349,7 +350,7 @@ class DatabaseController extends Controller {
             queue: 'default',
             next: function () {
                 $backup = new DatabaseBackup();
-                $backup->generateBackupPerTable(
+                return $backup->generateBackupPerTable(
                     $filePath = storage_path('app/public/backup/database-'.time().'.sql'),
                     $ignoteDataTables = [
                         'failed_jobs',
@@ -373,36 +374,42 @@ class DatabaseController extends Controller {
                 $zip->addFile($filePath, basename($filePath));
                 $zip->close();
                 */
-            
-                return [
-                    'status' => 'success',
-                    'message' => 'Generado backup de la base de datos y limpiado de tablas de jobs',
-                    'path' => $filePath,
-                    'url' => url('storage/backup/'.basename($filePath)),
-                ];        
             }
         );
     }
 
     public function listBackups() {
+        // si usamos S3 como filesystem por defecto
+        if (config('filesystems.default') === 's3') {
+            $files = Storage::disk('s3')->files('backups');
+            $backups = [];
+            foreach ($files as $file) {
+                $backups[] = [
+                    'name' => basename($file),
+                    'path' => $file,
+                    'url'  => Storage::disk('s3')->url($file),
+                    'size' => round(Storage::disk('s3')->size($file) / 1024 / 1024, 2),
+                    'date' => date('Y-m-d H:i:s', Storage::disk('s3')->lastModified($file)),
+                    'type' => pathinfo($file, PATHINFO_EXTENSION),
+                ];
+            }
+            usort($backups, fn($a,$b) => $b['date'] <=> $a['date']);
+            return $backups;
+        }
+
         $files = glob(storage_path('app/public/backup/*'));
         $backups = [];
         foreach ($files as $file) {
             $backups[] = [
                 'name' => basename($file),
                 'path' => $file,
-                'url' => url('storage/backup/'.basename($file)),
-                // size in megabytes
+                'url'  => url('storage/backup/'.basename($file)),
                 'size' => round(filesize($file) / 1024 / 1024, 2),
                 'date' => date('Y-m-d H:i:s', filemtime($file)),
                 'type' => pathinfo($file, PATHINFO_EXTENSION),
             ];
         }
-
-        // ordenar los backups por fecha, del mas nuevo al mas antiguo
-        usort($backups, function($a, $b) {
-            return $b['date'] <=> $a['date'];
-        });
+        usort($backups, fn($a,$b) => $b['date'] <=> $a['date']);
         return $backups;
     }
 
@@ -410,14 +417,22 @@ class DatabaseController extends Controller {
         $request->validate([
             'path' => 'required|string',
         ]);
-
         $path = $request->path;
 
+        // si usamos S3 como filesystem por defecto
+        if (config('filesystems.default') === 's3') {
+            if (Storage::disk('s3')->exists($path)) {
+                Storage::disk('s3')->delete($path);
+                return response()->json(['message' => 'Backup deleted'], 200);
+            }
+            return response()->json(['message' => 'Backup not found'], 404);
+        }
+
+        // filesystem local
         if (file_exists($path)) {
             unlink($path);
             return response()->json(['message' => 'Backup deleted'], 200);
         }
-
         return response()->json(['message' => 'Backup not found'], 404);
     }
 }
