@@ -359,6 +359,8 @@ class DatabaseController extends Controller {
                 Log::info('Backup de la base de datos iniciado', [
                     'ram' => $ram . ' MB',
                     'cpu' => $cpu . '%',
+                    'real_version' => config('app.real_version', 'unknown'),
+                    'DB_QUEUE_RETRY_AFTER' => config('queue.connections.database.retry_after', 'unknown'),
                 ]);
                 // generar el backup
                 $backup = new DatabaseBackup();
