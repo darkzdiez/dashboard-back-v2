@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\Controller;
 use App\Services\DatabaseBackup;
+use Illuminate\Support\Facades\Log;
 
 class DatabaseController extends Controller {
 
@@ -349,6 +350,17 @@ class DatabaseController extends Controller {
             level: 'info',
             queue: 'default',
             next: function () {
+                // sin limite de nada, porque puede ser muy pesado
+                ini_set('memory_limit', '-1');
+                set_time_limit(0);
+                // saber cuanta ram y cpu tiene el servidor
+                $ram = round(memory_get_usage(true) / 1024 / 1024, 2);
+                $cpu = sys_getloadavg()[0];
+                Log::info('Backup de la base de datos iniciado', [
+                    'ram' => $ram . ' MB',
+                    'cpu' => $cpu . '%',
+                ]);
+                // generar el backup
                 $backup = new DatabaseBackup();
                 return $backup->generateBackupPerTable(
                     $filePath = storage_path('app/public/backup/database-'.time().'.sql'),
