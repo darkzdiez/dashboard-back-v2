@@ -373,12 +373,12 @@ class DatabaseController extends Controller {
                         'processed_jobs',
                         /* Tablas pesadas */
                         // 'notes',
-                        // 'pedido_sync_sap',
-                        // 'shipment_track_events',
-                        // 'shipment_track_states',
-                        // 'shipment_track_stops',
-                        // 'shipment_track_vessels',
-                        // 'shipment_tracks'
+                        'pedido_sync_sap',
+                        'shipment_track_events',
+                        'shipment_track_states',
+                        'shipment_track_stops',
+                        'shipment_track_vessels',
+                        'shipment_tracks'
                     ]
                 );
                 /*
