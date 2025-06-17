@@ -74,6 +74,61 @@ class CronController extends Controller {
         return $item;
     }
 
+    public function executeNow($id) {
+        $item = Cron::where('uuid', $id)->first();
+        if (!$item) {
+            return response()->json(['message' => 'Cron not found'], 404);
+        }
+
+        try {
+            $output = '';
+            $status = 'success';
+            $error = '';
+            if ($item->method == 'exec') {
+                $result = null;
+                exec($item->command . ' 2>&1', $outputLines, $result);
+                $output = implode("\n", $outputLines);
+                if ($result !== 0) {
+                    $status = 'failure';
+                }
+            } elseif ($item->method == 'command') {
+                try {
+                    \Artisan::call($item->command);
+                    $output = \Artisan::output();
+                } catch (\Exception $e) {
+                    $status = 'failure';
+                    $error = $e->getMessage();
+                }
+            }
+            
+            \DB::table('cron_log')->insert([
+                'cron_id' => $item->id,
+                'run_at' => \Carbon\Carbon::now(),
+                'run_status' => $status,
+                'output' => $output,
+                'error' => $error,
+                'created_at' => \Carbon\Carbon::now(),
+                'updated_at' => \Carbon\Carbon::now(),
+            ]);
+
+            if ($status === 'failure') {
+                return response()->json(['message' => 'Error executing cron job', 'output' => $output, 'error' => $error], 500);
+            }
+        } catch (\Exception $e) {
+            \DB::table('cron_log')->insert([
+                'cron_id' => $item->id,
+                'run_at' => \Carbon\Carbon::now(),
+                'run_status' => 'failure',
+                'output' => '',
+                'error' => $e->getMessage(),
+                'created_at' => \Carbon\Carbon::now(),
+                'updated_at' => \Carbon\Carbon::now(),
+            ]);
+            return response()->json(['message' => 'Error executing cron job: ' . $e->getMessage()], 500);
+        }
+        return response()->json(['message' => 'Cron job executed successfully', 'output' => $output]);
+    }
+
     public function delete($id) {
         $item = Cron::where('uuid', $id)->first();
         $item->delete();

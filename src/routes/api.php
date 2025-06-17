@@ -111,6 +111,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::get ('/delete/{id}',  [CronController::class, 'delete'])->name('.delete');
         Route::get ('/restore/{id}', [CronController::class, 'restore'])->name('.restore');
         Route::post('/list-select',  [CronController::class, 'listSelect'])->name('.listSelect');
+        Route::post('/{id}/execute-now', [CronController::class, 'executeNow'])->name('.executeNow');
     });
 
     Route::group([
