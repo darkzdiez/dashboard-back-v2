@@ -24,7 +24,7 @@ class CronController extends Controller {
 
 
     public function find($id) {
-        $task = Cron::with(['logs'])->where('uuid', $id)->first();
+        $task = Cron::withTrashed()->with(['logs'])->where('uuid', $id)->first();
         if ($task) {
             return $task;
         }
