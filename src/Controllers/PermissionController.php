@@ -5,7 +5,7 @@ namespace AporteWeb\Dashboard\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use App\Http\Controllers\Controller;
-use Junges\ACL\Models\Permission;
+use AporteWeb\Dashboard\Models\Permission;
 
 class PermissionController extends Controller {
     public function all() {
