@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use AporteWeb\Dashboard\Models\Group;
+use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller {
     public function all() {
@@ -59,6 +60,9 @@ class UserController extends Controller {
             $user = new User;
         }
 
+        // Capturar grupos originales antes de modificar (solo si el usuario ya existe)
+        $originalGroupIds = $user && $user->exists ? $user->groups()->pluck('id')->all() : [];
+
         // validate the request
         $request->validate([
             'name'     => 'required|string|max:255',
@@ -79,14 +83,36 @@ class UserController extends Controller {
             $user->password = bcrypt($request->password);
         }
         $user->save();
-        $groups = array_filter(explode(',', $request->groups));
-        if ( count($groups) ) {
+        // Sincronizar grupos y determinar diferencias
+        $groupUuids = is_array($request->groups)
+            ? array_filter($request->groups)
+            : array_filter(explode(',', (string) $request->groups));
+        if (count($groupUuids)) {
             // groups tiene los uuids de los grupos, debemos convertirlos a ids
-            $groups = Group::whereIn('uuid', $groups)->pluck('id');
-            $user->groups()->sync($groups);
+            $newGroupIds = Group::whereIn('uuid', $groupUuids)->pluck('id')->all();
+            $user->groups()->sync($newGroupIds);
         } else {
+            $newGroupIds = [];
             $user->groups()->detach();
         }
+
+        // Log de cambios en grupos (estandarizado vía ActivityLogger)
+        $allIds = array_values(array_unique(array_merge($originalGroupIds, $newGroupIds)));
+        $labelsById = $allIds
+            ? Group::whereIn('id', $allIds)->pluck('name', 'id')->toArray()
+            : [];
+
+        $actorName = Auth::user() ? Auth::user()->name : 'system';
+        $description = $id
+            ? "El usuario {$actorName} actualizó los grupos del usuario {$user->name}"
+            : "El usuario {$actorName} asignó grupos al usuario {$user->name}";
+
+        activity()
+            ->onModel($user)
+            ->withRef('uuid', $user->uuid)
+            ->forEvent($id ? 'update' : 'create')
+            ->describe($description)
+            ->logRelationSync('groups', $originalGroupIds, $newGroupIds, $labelsById, ['label' => 'Grupos']);
 
         return ['message' => 'Registro guardado'];
     }
