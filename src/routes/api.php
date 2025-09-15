@@ -13,6 +13,8 @@ use AporteWeb\Dashboard\Controllers\JobsController;
 use AporteWeb\Dashboard\Controllers\DatabaseController;
 use AporteWeb\Dashboard\Controllers\ProfileController;
 use AporteWeb\Dashboard\Controllers\NewsController;
+use AporteWeb\Dashboard\Controllers\AuthController;
+use Illuminate\Support\Facades\Auth;
 
 Route::group(['middleware' => ['auth']], function () {
     Route::group([
@@ -131,109 +133,11 @@ Route::group(['middleware' => ['auth']], function () {
 
 });
 
-Route::get('check-auth', function () {
-    //try {
-        $user = auth()->guard('web')->user();
-        if ( ! $user ) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Not authenticated',
-            ]);
-        }
-        // get all permissions
-        $allPermissions = Permission::get();
-        $permissions = [];
-        /*
-        foreach ($allPermissions as $permission) {
-            $permissions[$permission->name] = [
-                'description' => $permission->description,
-                'access' => false,
-            ];
-        }
-        */
-        // Permission::create(['name' => 'add employees']);
-        // $user->syncPermissions(['user-create']);
-        // get all user permissions
-        // $userPermissions = $user->getAllPermissions();
-        $userPermissions = $user->getOrgAllPermissions();
-        foreach ($userPermissions as $permission) {
-            // $permissions[$permission->name]['access'] = true;
-            $permissions[$permission->name] = [
-                'description' => $permission->description,
-                'access' => true,
-            ];
-        }
+Route::get('check-auth', [AuthController::class, 'checkAuth']);
 
-        $config = \App\Models\ConfigGeneral::select([
-            'cotizacion_default_tipo_de_contenedor_id',
-        ])->first()->toArray();
-
-        return response()->json([
-            'user' => [
-                'id'                        => $user->id,
-                'name'                      => $user->name,
-                'email'                     => $user->email,
-                'username'                  => $user->username,
-                'original_user'             => session()->get('original_user'),
-                'environment'               => $user->environment,
-                'permissions'               => $permissions,
-                'organization_id'           => $user->organization?->id,
-                'organization_name'         => $user->organization?->name,
-                'organization_type_id'      => $user->organization?->type?->id,
-                'organization_type_name'    => $user->organization?->type?->name,
-                'organization_logo_url'     => $user->organization?->logo_url,
-                'organization_favicon_url'  => $user->organization?->favicon_url,
-                'default_home'              => $user->organization?->type?->default_home,
-            ],
-            'status' => 'success',
-            'config' => $config,
-        ]);
-    /*} catch (\Throwable $th) {
-        return response()->json([
-            'status' => 'error'
-        ]);
-    }*/
-});
-
-use Illuminate\Support\Facades\Auth;
-Route::post('login', function (Request $request) {
-    // check if username is email or username
-    if ( filter_var($request->username, FILTER_VALIDATE_EMAIL) ) {
-        $credentials = [
-            'email' => $request->username,
-            'password' => $request->password,
-        ];
-    } else {
-        $credentials = [
-            'username' => $request->username,
-            'password' => $request->password,
-        ];
-    }
-    /*
-    Antes en Laravel 10
-    if ( ! auth()->guard('web')->attempt($credentials, true) ) {
-        return response()->json(['error' => 'Unauthorized'], 401);
-    }
-    return redirect()->intended('api/check-auth');
-    */
-    // Laravel 11
-    if (Auth::attempt($credentials)) {
-        $request->session()->regenerate();
-
-        return redirect()->intended('api/check-auth');
-    }
-
-    return response()->json(['error' => 'Unauthorized'], 401);
-    return back()->withErrors([
-        'email' => 'The provided credentials do not match our records.',
-    ])->onlyInput('email');
-});
-
-Route::get('logout', function () {
-    auth()->logout();
-    session()->invalidate();
-    return response()->json(['message' => 'Logged out']);
-});
+Route::post('login', [AuthController::class, 'login']);
+Route::post('recover-password', [AuthController::class, 'recoverPassword']);
+Route::get('logout', [AuthController::class, 'logout']);
 
 Route::get('timestamp', function () {
     return time();
