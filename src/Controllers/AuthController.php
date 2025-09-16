@@ -47,6 +47,7 @@ class AuthController extends Controller
                 'name'                      => $user->name,
                 'email'                     => $user->email,
                 'username'                  => $user->username,
+                'locale'                    => app()->getLocale(),
                 'original_user'             => \session()->get('original_user'),
                 'environment'               => $user->environment,
                 'permissions'               => $permissions,
@@ -98,6 +99,7 @@ class AuthController extends Controller
         // generar una clave temporal de 12 caracteres alfanuméricos
         $tempPassword = Str::random(12);
         $user->password = bcrypt($tempPassword);
+        $user->must_change_password = true;
         $user->save();
 
         // Enviar notificación de recuperación (mail o queue)
