@@ -22,7 +22,7 @@ class DatabaseController extends Controller {
         // return DB::connection()->getDoctrineSchemaManager()->listTableNames();
         // esto puede producir el siguiente error: Class "Doctrine\DBAL\Driver\AbstractMySQLDriver" not found
         // para solucionarlo, ejecutar: composer require doctrine/dbal
-        return response()->json(['permissions']);
+        return response()->json(['permissions', 'config_form_labels']);
         $tables = DB::select('SHOW TABLES');
         // dd($tables);
         return response()->json(array_map(function($table) {
