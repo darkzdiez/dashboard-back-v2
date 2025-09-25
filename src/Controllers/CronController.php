@@ -75,7 +75,7 @@ class CronController extends Controller {
     }
 
     public function executeNow($id) {
-        $item = Cron::where('uuid', $id)->first();
+        $item = Cron::withTrashed()->where('uuid', $id)->first();
         if (!$item) {
             return response()->json(['message' => 'Cron not found'], 404);
         }
