@@ -44,7 +44,7 @@ class CronController extends Controller {
     public function store(Request $request, $id = null) {
         // store a new item
         if ($id) {
-            $item = Cron::where('uuid', $id)->first();
+            $item = Cron::withTrashed()->where('uuid', $id)->first();
         } else {
             $item = new Cron;
         }        
