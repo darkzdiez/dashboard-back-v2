@@ -2,15 +2,22 @@
 
 namespace AporteWeb\Dashboard\Controllers;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
 use AporteWeb\Dashboard\Models\IndexJob;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Auth;
+use function response;
+use function request;
+use function auth;
 
 class JobsController extends Controller {
     public function topBar() {
-        $jobs = Cache::rememberForever('jobs.' . auth()->user()->id, function () {
+        $userId = Auth::id();
+
+        $jobs = Cache::rememberForever('jobs.' . $userId, function () use ($userId) {
             return DB::table('index_jobs')
                 ->select(
                     'uuid',
@@ -35,7 +42,7 @@ class JobsController extends Controller {
                         FLOOR((TIMESTAMPDIFF(SECOND, created_at, updated_at) % 3600) % 60), "s"
                     ) as duration_human')
                 )
-                ->where('user_id', auth()->user()->id)
+                ->where('user_id', $userId)
                 ->orderByDesc('id')
                 ->paginate(7);
         });
@@ -91,5 +98,43 @@ class JobsController extends Controller {
             return response()->json($job->queries);
         }
         return response()->json(['error' => 'Job not found'], 404);
+    }
+
+    public function clearHistory(Request $request, ?string $scope = null): JsonResponse {
+        $scope = $scope ?? $request->get('scope', 'all');
+
+        /** @var \Illuminate\Database\Eloquent\Builder $query */
+    $query = IndexJob::query();
+    $shouldClearQueue = in_array($scope, ['queue', 'all'], true);
+
+        switch ($scope) {
+            case 'queue':
+                $query->whereIn('status', ['waiting']);
+                break;
+            case 'completed':
+                $query->whereIn('status', ['finish', 'failed']);
+                break;
+            case 'all':
+            default:
+                $scope = 'all';
+                break;
+        }
+
+        $deletedIndexJobs = $query->delete();
+        $deletedQueueJobs = 0;
+
+        if ($shouldClearQueue) {
+            $deletedQueueJobs = DB::table('jobs')->delete();
+        }
+
+        if (Auth::check()) {
+            Cache::forget('jobs.' . Auth::id());
+        }
+
+        return response()->json([
+            'scope' => $scope,
+            'deleted_index_jobs' => $deletedIndexJobs,
+            'deleted_queue_jobs' => $deletedQueueJobs,
+        ]);
     }
 }
