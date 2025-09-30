@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Auth;
 use function response;
 use function request;
 use function auth;
+use function activity;
 
 class JobsController extends Controller {
     public function topBar() {
@@ -102,10 +103,11 @@ class JobsController extends Controller {
 
     public function clearHistory(Request $request, ?string $scope = null): JsonResponse {
         $scope = $scope ?? $request->get('scope', 'all');
+        $actor = Auth::user();
 
         /** @var \Illuminate\Database\Eloquent\Builder $query */
-    $query = IndexJob::query();
-    $shouldClearQueue = in_array($scope, ['queue', 'all'], true);
+        $query = IndexJob::query();
+        $shouldClearQueue = in_array($scope, ['queue', 'all'], true);
 
         switch ($scope) {
             case 'queue':
@@ -129,6 +131,23 @@ class JobsController extends Controller {
 
         if (Auth::check()) {
             Cache::forget('jobs.' . Auth::id());
+        }
+
+        if ($actor) {
+            $description = "El usuario {$actor->name} limpió el historial de jobs ({$scope})";
+
+            activity()
+                ->causedBy($actor)
+                ->onLogName('index_jobs')
+                ->forEvent('clear-history')
+                ->withProperties([
+                    'scope' => $scope,
+                    'deleted_index_jobs' => $deletedIndexJobs,
+                    'deleted_queue_jobs' => $deletedQueueJobs,
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ])
+                ->log($description);
         }
 
         return response()->json([

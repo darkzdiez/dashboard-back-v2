@@ -149,8 +149,8 @@ class UserController extends Controller {
 
     public function loginAs(Request $request) {
         // Primero checamos si el usuario tiene permiso para hacer login como otro usuario
-        $user = auth()->user();
-        if ( !$user->can('login-as') ) {
+        $actor = clone auth()->user();
+        if ( !$actor->can('login-as') ) {
             return response()->json(['message' => 'No tienes permiso para hacer login como otro usuario'], 403);
         }
 
@@ -162,8 +162,26 @@ class UserController extends Controller {
 
         // iniciamos sesión como el usuario
         auth()->login($targetUser);
+
         // añadimos el usuario a la sesión
-        $request->session()->put('original_user', $user->id);
+        $request->session()->put('original_user', $actor->id);
+
+        $startDescription = "El usuario {$actor->name} inició sesión como {$targetUser->name}";
+
+        activity()
+            ->causedBy($actor)
+            ->onModel($targetUser)
+            ->withRef('uuid', $targetUser->uuid)
+            ->forEvent('impersonate-start')
+            ->withProperties([
+                'actor_id' => $actor->id,
+                'actor_uuid' => $actor->uuid ?? null,
+                'actor_name' => $actor->name,
+                'target_id' => $targetUser->id,
+                'target_uuid' => $targetUser->uuid,
+                'target_name' => $targetUser->name,
+            ])
+            ->log($startDescription);
 
         return ['message' => 'Sesión iniciada como ' . $targetUser->name];
     }
@@ -171,9 +189,31 @@ class UserController extends Controller {
     public function returnToOriginalUser() {
         $originalUserId = session()->pull('original_user');
         if ( $originalUserId ) {
+            $impersonatedUser = auth()->user();
             $originalUser = User::find($originalUserId);
-            auth()->login($originalUser);
-            return ['message' => 'Sesión regresada a ' . $originalUser->name];
+
+            if ($originalUser) {
+                auth()->login($originalUser);
+
+                $endDescription = "El usuario {$originalUser->name} regresó a su sesión tras impersonar a {$impersonatedUser?->name}";
+
+                activity()
+                    ->causedBy($originalUser)
+                    ->onModel($impersonatedUser)
+                    ->withRef('uuid', $impersonatedUser->uuid ?? null)
+                    ->forEvent('impersonate-end')
+                    ->withProperties([
+                        'original_id' => $originalUser->id,
+                        'original_uuid' => $originalUser->uuid ?? null,
+                        'original_name' => $originalUser->name,
+                        'impersonated_id' => $impersonatedUser?->id,
+                        'impersonated_uuid' => $impersonatedUser?->uuid ?? null,
+                        'impersonated_name' => $impersonatedUser?->name,
+                    ])
+                    ->log($endDescription);
+
+                return ['message' => 'Sesión regresada a ' . $originalUser->name];
+            }
         }
         return ['message' => 'No hay sesión para regresar'];        
     }

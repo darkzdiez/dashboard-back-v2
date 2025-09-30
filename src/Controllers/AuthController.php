@@ -78,6 +78,25 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
+
+            $authenticatedUser = Auth::user();
+
+            if ($authenticatedUser) {
+                $description = "El usuario {$authenticatedUser->name} inició sesión";
+
+                activity()
+                    ->causedBy($authenticatedUser)
+                    ->onModel($authenticatedUser)
+                    ->withRef('uuid', $authenticatedUser->uuid ?? null)
+                    ->forEvent('login')
+                    ->withProperties([
+                        'ip' => $request->ip(),
+                        'user_agent' => $request->userAgent(),
+                        'guard' => 'web',
+                    ])
+                    ->log($description);
+            }
+
             return \redirect()->intended('api/check-auth');
         }
 
@@ -109,6 +128,19 @@ class AuthController extends Controller
                 "Your temporary password is: <strong>{$tempPassword}</strong><br>Login here: <a href=\"{$loginUrl}\">{$loginUrl}</a><br>Please log in and change your password immediately.",
                 'Password Recovery'
             ));
+
+        $recoverDescription = "Se generó una contraseña temporal para {$user->name}";
+
+        activity()
+            ->onModel($user)
+            ->withRef('uuid', $user->uuid ?? null)
+            ->forEvent('password-recovery')
+            ->withProperties([
+                'username' => $request->username,
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ])
+            ->log($recoverDescription);
 
         return \response()->json(['status' => 'ok', 'message' => 'Recovery process initiated']);
     }
