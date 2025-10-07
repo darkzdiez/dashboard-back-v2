@@ -9,19 +9,62 @@ use AporteWeb\Dashboard\Models\Group;
 use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller {
-    public function all() {
+    public function all(Request $request) {
         // sniff('group-*');
         // traer la organización, pero solo el nombre
         $paginator = User::with(['organization' => function($query) {
             $query->select('id', 'uuid', 'name');
         }, 'groups:name,uuid'])
             ->orderBy('id', 'desc');
-        if ( request()->has('filters') && is_array(request()->filters) ) {
-            foreach (request()->filters as $key => $value) {
-                $paginator->where($key, 'like', '%'.$value.'%');
+        $filters = $request->input('filters', []);
+        if ( is_array($filters) ) {
+            foreach ($filters as $key => $value) {
+                if (is_array($value)) {
+                    $value = array_values(array_filter(array_map(function ($item) {
+                        if (!is_scalar($item)) {
+                            return null;
+                        }
+                        $normalized = trim((string) $item);
+                        return $normalized === '' ? null : $normalized;
+                    }, $value)));
+                }
+
+                if ($value === null || $value === '' || (is_array($value) && empty($value))) {
+                    continue;
+                }
+
+                if ($key === 'group_uuid') {
+                    $groupUuids = is_array($value) ? $value : [trim((string) $value)];
+                    if (empty($groupUuids)) {
+                        continue;
+                    }
+                    $paginator->whereHas('groups', function ($query) use ($groupUuids) {
+                        $query->whereIn('uuid', $groupUuids);
+                    });
+                    continue;
+                }
+
+                if ($key === 'organization_uuid') {
+                    $organizationUuids = is_array($value) ? $value : [trim((string) $value)];
+                    if (empty($organizationUuids)) {
+                        continue;
+                    }
+                    $paginator->whereHas('organization', function ($query) use ($organizationUuids) {
+                        $query->whereIn('uuid', $organizationUuids);
+                    });
+                    continue;
+                }
+
+                if (is_scalar($value)) {
+                    $value = trim((string) $value);
+                    if ($value === '') {
+                        continue;
+                    }
+                    $paginator->where($key, 'like', '%'.$value.'%');
+                }
             }
         }
-        if ( request()->has('trash') && request()->trash == 1 ) {
+        if ( $request->boolean('trash') ) {
             $paginator->onlyTrashed();
         }
 
@@ -136,13 +179,18 @@ class UserController extends Controller {
     }
     public function listSelect(Request $request) {
         $data = User::orderBy('id', 'desc');
-        if ( request()->has('search') && strlen(request()->search) ) {
-            $data->where(function($query) {
+        if ( $request->filled('search') ) {
+            $search = $request->input('search');
+            $data->where(function($query) use ($search) {
                 $keys = ['name'];
                 foreach ($keys as $key => $colName) {
-                    $query->orWhere($colName, 'like', '%'.request()->search.'%');
+                    $query->orWhere($colName, 'like', '%'.$search.'%');
                 }
             });
+        }
+        if ( $request->filled('optionKey') ) {
+            $data->where('id', $request->input('optionKey'));
+            return $data->first();
         }
         return $data->get();    
     }
