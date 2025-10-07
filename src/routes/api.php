@@ -63,6 +63,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::any ('/',        [JobsController::class, 'all'])->name('.all');
         Route::get ('/top-bar', [JobsController::class, 'topBar'])->name('.topBar');
         Route::delete('/history/{scope?}', [JobsController::class, 'clearHistory'])->name('.clearHistory');
+        Route::delete('/{uuid}/cancel', [JobsController::class, 'cancel'])->name('.cancel');
         Route::get ('/{uuid}/callback', [JobsController::class, 'callback'])->name('.callback');
         Route::get ('/{uuid}/queries', [JobsController::class, 'queries'])->name('.queries');
     });

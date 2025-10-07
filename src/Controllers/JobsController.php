@@ -9,6 +9,9 @@ use App\Http\Controllers\Controller;
 use AporteWeb\Dashboard\Models\IndexJob;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Opis\Closure\SerializableClosure;
+use ReflectionFunction;
 use function response;
 use function request;
 use function auth;
@@ -101,6 +104,79 @@ class JobsController extends Controller {
         return response()->json(['error' => 'Job not found'], 404);
     }
 
+    public function cancel(Request $request, string $uuid): JsonResponse {
+        $indexJob = IndexJob::where('uuid', $uuid)->first();
+
+        if (!$indexJob) {
+            return response()->json(['message' => 'Job no encontrado.'], 404);
+        }
+
+        if ($indexJob->status !== 'waiting') {
+            return response()->json([
+                'message' => 'Solo se pueden cancelar jobs en espera.',
+                'status' => $indexJob->status,
+            ], 422);
+        }
+
+        $actor = Auth::user();
+        $queueJob = $this->findQueueJobByIndexJob($indexJob);
+        $deletedQueueJob = 0;
+
+        if ($queueJob) {
+            $deletedQueueJob = DB::table('jobs')->where('id', $queueJob->id)->delete();
+        }
+
+        $indexJob->status = 'cancelled';
+        $indexJob->finished_at = now();
+        $indexJob->updated_at = now();
+        $indexJob->callback = json_encode([
+            'status' => 'cancelled',
+            'cancelled_by' => $actor ? $actor->only(['id', 'name']) : null,
+            'cancelled_at' => now()->toIso8601String(),
+            'deleted_queue_job' => (bool) $deletedQueueJob,
+        ], JSON_PRETTY_PRINT);
+        $indexJob->save();
+        $indexJob->refresh();
+
+        if ($indexJob->user_id) {
+            Cache::forget('jobs.' . $indexJob->user_id);
+        }
+
+        if ($actor) {
+            Cache::forget('jobs.' . $actor->id);
+        }
+
+        try {
+            Storage::disk('local')->put(
+                'dashboard-task/' . $indexJob->uuid . '.json',
+                json_encode(['status' => 'cancelled'], JSON_PRETTY_PRINT)
+            );
+        } catch (\Throwable $exception) {
+            // Ignorar errores de almacenamiento, no son críticos para la cancelación
+        }
+
+        if ($actor) {
+            activity()
+                ->causedBy($actor)
+                ->onLogName('index_jobs')
+                ->forEvent('cancel')
+                ->withProperties([
+                    'uuid' => $indexJob->uuid,
+                    'queue' => $indexJob->queue,
+                    'deleted_queue_job' => (bool) $deletedQueueJob,
+                    'request_ip' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                ])
+                ->log("El usuario {$actor->name} canceló el job {$indexJob->title} ({$indexJob->uuid})");
+        }
+
+        return response()->json([
+            'message' => 'Job cancelado correctamente.',
+            'deleted_queue_job' => (bool) $deletedQueueJob,
+            'job' => $indexJob,
+        ]);
+    }
+
     public function clearHistory(Request $request, ?string $scope = null): JsonResponse {
         $scope = $scope ?? $request->get('scope', 'all');
         $actor = Auth::user();
@@ -155,5 +231,45 @@ class JobsController extends Controller {
             'deleted_index_jobs' => $deletedIndexJobs,
             'deleted_queue_jobs' => $deletedQueueJobs,
         ]);
+    }
+
+    private function findQueueJobByIndexJob(IndexJob $indexJob): ?object {
+        $queueJobs = DB::table('jobs')
+            ->where('queue', $indexJob->queue)
+            ->orderBy('id')
+            ->get();
+
+        foreach ($queueJobs as $queueJob) {
+            $payload = json_decode($queueJob->payload, true);
+
+            if (!is_array($payload) || empty($payload['data']['command'])) {
+                continue;
+            }
+
+            $command = $payload['data']['command'];
+
+            try {
+                $serializable = @unserialize($command, ['allowed_classes' => true]);
+            } catch (\Throwable $exception) {
+                continue;
+            }
+
+            if (!$serializable instanceof SerializableClosure) {
+                continue;
+            }
+
+            try {
+                $closure = $serializable->getClosure();
+                $staticVariables = (new ReflectionFunction($closure))->getStaticVariables();
+            } catch (\Throwable $exception) {
+                continue;
+            }
+
+            if (($staticVariables['uuid'] ?? null) === $indexJob->uuid) {
+                return $queueJob;
+            }
+        }
+
+        return null;
     }
 }
