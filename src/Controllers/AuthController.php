@@ -47,6 +47,7 @@ class AuthController extends Controller
                 'name'                      => $user->name,
                 'email'                     => $user->email,
                 'username'                  => $user->username,
+                'must_change_password'      => $user->must_change_password,
                 'locale'                    => app()->getLocale(),
                 'original_user'             => \session()->get('original_user'),
                 'environment'               => $user->environment,
