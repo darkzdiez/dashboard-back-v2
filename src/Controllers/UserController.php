@@ -7,6 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use AporteWeb\Dashboard\Models\Group;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
 
 class UserController extends Controller {
     public function all(Request $request) {
@@ -264,5 +266,41 @@ class UserController extends Controller {
             }
         }
         return ['message' => 'No hay sesión para regresar'];        
+    }
+
+    public function resetPasswordMultiple(Request $request) {
+        $request->validate([
+            'uuids' => 'required|array',
+        ]);
+
+        $userUuids = $request->input('uuids', []);
+
+        $users = User::whereIn('uuid', $userUuids)->get();
+        foreach ($users as $user) {
+            $tempPassword = Str::random(12);
+            $user->password = bcrypt($tempPassword);
+            $user->save();
+            $loginUrl = url('/login');
+            Mail::to($user->email)
+                ->send(new \App\Mail\SendNotification(
+                    "Hola {$user->name},<br><br>"
+                    . "Tu contraseña temporal para el usuario: <strong>{$user->username}</strong>, es: <strong>{$tempPassword}</strong><br>Inicia sesión aquí: <a href=\"{$loginUrl}\">{$loginUrl}</a><br>Por favor, inicia sesión y cambia tu contraseña inmediatamente.",
+                    'Recuperación de Contraseña'
+                ));
+            $description = "El usuario " . (auth()->user()?->name ?? 'system') . " restableció la contraseña del usuario {$user->name}";
+
+            activity()
+                ->causedBy(auth()->user())
+                ->onModel($user)
+                ->withRef('uuid', $user->uuid)
+                ->forEvent('reset-password')
+                ->withProperties([
+                    'ip' => request()->ip(),
+                    'user_agent' => request()->userAgent(),
+                ])
+                ->log($description);
+        }
+
+        return ['message' => 'Contraseñas restablecidas para ' . count($users) . ' usuarios.'];
     }
 }
