@@ -48,6 +48,7 @@ class ProfileController extends Controller {
             'password' => 'required|string|min:8|confirmed',
         ]);
         $user->password = bcrypt($request->password);
+        $user->must_change_password = false;
         $user->save();
 
         return response()->json([
