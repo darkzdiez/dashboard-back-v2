@@ -132,6 +132,10 @@ class UserController extends Controller {
         $user->username = $request->username;
         $user->email = $request->email;
         $user->organization_id = $request->organization_id;
+        $user->login_with_password = $request->boolean('login_with_password', true);
+        $user->login_with_google = $request->boolean('login_with_google', false);
+        $user->access_testing = $request->boolean('access_testing', false);
+        $user->access_production = $request->boolean('access_production', false);
         
         if ($request->password) {
             $user->password = bcrypt($request->password);
