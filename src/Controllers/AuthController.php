@@ -78,9 +78,20 @@ class AuthController extends Controller
         $credentials = $this->buildCredentials($request->username, $request->password);
 
         if (Auth::attempt($credentials)) {
-            $request->session()->regenerate();
-
             $authenticatedUser = Auth::user();
+
+            // Verificar si el usuario tiene habilitado el login con contraseña
+            if (!$authenticatedUser->login_with_password) {
+                Auth::logout();
+                $request->session()->invalidate();
+                
+                return \response()->json([
+                    'status' => 'error',
+                    'message' => 'El login con contraseña está deshabilitado para este usuario'
+                ], 500);
+            }
+
+            $request->session()->regenerate();
 
             if ($authenticatedUser) {
                 $description = "El usuario {$authenticatedUser->name} inició sesión";
