@@ -37,9 +37,13 @@ class AuthController extends Controller
         }
 
         // Config general (ajustar si es necesario)
-        $config = ConfigGeneral::select([
-            'cotizacion_default_tipo_de_contenedor_id',
-        ])->first()?->toArray() ?? [];
+        try {
+            $config = ConfigGeneral::select([
+                'cotizacion_default_tipo_de_contenedor_id',
+            ])->first()?->toArray() ?? [];
+        } catch (\Throwable $th) {
+            $config = [];
+        }
 
         return response()->json([
             'user' => [
