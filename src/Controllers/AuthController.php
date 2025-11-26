@@ -84,6 +84,25 @@ class AuthController extends Controller
         if (Auth::attempt($credentials)) {
             $authenticatedUser = Auth::user();
 
+            // si env('USE_SOCIAL_LOGIN') es true
+            // validar si el env('APP_ENV') si es dev o local y la columna access_testing es true
+            // validar si el env('APP_ENV') si es prod y la columna access_production es true
+            if (
+                env('USE_SOCIAL_LOGIN') &&
+                (
+                    (in_array(env('APP_ENV'), ['local', 'dev']) && !$authenticatedUser->access_testing) ||
+                    (env('APP_ENV') === 'prod' && !$authenticatedUser->access_production)
+                )
+            ) {
+                Auth::logout();
+                $request->session()->invalidate();
+                
+                return \response()->json([
+                    'status' => 'error',
+                    'message' => 'El usuario no tiene permiso para acceder a este entorno'
+                ], 500);
+            }
+
             // Verificar si el usuario tiene habilitado el login con contraseña
             if (!$authenticatedUser->login_with_password) {
                 Auth::logout();
