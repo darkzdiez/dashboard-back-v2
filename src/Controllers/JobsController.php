@@ -209,6 +209,13 @@ class JobsController extends Controller {
             Cache::forget('jobs.' . Auth::id());
         }
 
+        // deberia truncar failed_jobs, index_jobs, job_batches, jobs, processed_jobs
+        // TRUNCATE `failed_jobs`;
+        // TRUNCATE `index_jobs`;
+        // TRUNCATE `jobs`;
+        // TRUNCATE `job_batches`;
+        // TRUNCATE `processed_jobs`;
+
         if ($actor) {
             $description = "El usuario {$actor->name} limpió el historial de jobs ({$scope})";
 
