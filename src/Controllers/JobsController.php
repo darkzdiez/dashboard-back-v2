@@ -10,6 +10,7 @@ use AporteWeb\Dashboard\Models\IndexJob;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Opis\Closure\SerializableClosure;
 use ReflectionFunction;
 use function response;
@@ -181,40 +182,49 @@ class JobsController extends Controller {
         $scope = $scope ?? $request->get('scope', 'all');
         $actor = Auth::user();
 
-        /** @var \Illuminate\Database\Eloquent\Builder $query */
-        $query = IndexJob::query();
-        $shouldClearQueue = in_array($scope, ['queue', 'all'], true);
-
-        switch ($scope) {
-            case 'queue':
-                $query->whereIn('status', ['waiting']);
-                break;
-            case 'completed':
-                $query->whereIn('status', ['finish', 'failed']);
-                break;
-            case 'all':
-            default:
-                $scope = 'all';
-                break;
-        }
-
-        $deletedIndexJobs = $query->delete();
+        $deletedIndexJobs = 0;
         $deletedQueueJobs = 0;
 
-        if ($shouldClearQueue) {
-            $deletedQueueJobs = DB::table('jobs')->delete();
+        if ($scope === 'all') {
+            $tablesToTruncate = [
+                'failed_jobs',
+                'index_jobs',
+                'jobs',
+                'job_batches',
+                'processed_jobs',
+            ];
+            foreach ($tablesToTruncate as $table) {
+                try {
+                    DB::table($table)->truncate();
+                    Log::info("Truncated table {$table} successfully.");
+                } catch (\Exception $e) {
+                    Log::error("Error truncating table {$table}: " . $e->getMessage());
+                }
+            }
+        } else {
+            /** @var \Illuminate\Database\Eloquent\Builder $query */
+            $query = IndexJob::query();
+            $shouldClearQueue = $scope === 'queue';
+
+            switch ($scope) {
+                case 'queue':
+                    $query->whereIn('status', ['waiting']);
+                    break;
+                case 'completed':
+                    $query->whereIn('status', ['finish', 'failed']);
+                    break;
+            }
+
+            $deletedIndexJobs = $query->delete();
+
+            if ($shouldClearQueue) {
+                $deletedQueueJobs = DB::table('jobs')->delete();
+            }
         }
 
         if (Auth::check()) {
             Cache::forget('jobs.' . Auth::id());
         }
-
-        // deberia truncar failed_jobs, index_jobs, job_batches, jobs, processed_jobs
-        // TRUNCATE `failed_jobs`;
-        // TRUNCATE `index_jobs`;
-        // TRUNCATE `jobs`;
-        // TRUNCATE `job_batches`;
-        // TRUNCATE `processed_jobs`;
 
         if ($actor) {
             $description = "El usuario {$actor->name} limpió el historial de jobs ({$scope})";
