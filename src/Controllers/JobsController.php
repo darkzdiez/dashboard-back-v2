@@ -192,6 +192,7 @@ class JobsController extends Controller {
                 'jobs',
                 'job_batches',
                 'processed_jobs',
+                'cron_log'
             ];
             foreach ($tablesToTruncate as $table) {
                 try {
