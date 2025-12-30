@@ -9,6 +9,7 @@ use AporteWeb\Dashboard\Models\Group;
 
 class GroupController extends Controller {
     public function all() {
+        // sleep(10);
         // sniff($this->prefixPermission . '-*');
         $paginator = Group::with(['parent', 'users'])->orderBy('id', 'desc');
         if ( request()->has('filters') && is_array(request()->filters) ) {

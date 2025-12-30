@@ -98,6 +98,7 @@ class UserController extends Controller {
     }
 
     public function find($id) {
+        // sleep(3);
         $item = User::where('uuid', $id)->first();
         if ($item) {
             $item->groups = $item->groups()->pluck('uuid');
