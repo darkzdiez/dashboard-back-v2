@@ -147,7 +147,7 @@ class AuthController extends Controller
 
         $user = $this->findUserByUsernameOrEmail($request->username);
         if (!$user) {
-            return \response()->json(['error' => 'User not found'], 404);
+            return \response()->json(['error' => 'Usuario no encontrado'], 404);
         }
 
         // generar una clave temporal de 12 caracteres alfanuméricos
@@ -158,11 +158,24 @@ class AuthController extends Controller
 
         // Enviar notificación de recuperación (mail o queue)
         $loginUrl = url('/login');
+        $appName = config('app.name', 'Plataforma');
+
+        $emailBody = '
+            <h2 style="color: #333; margin-top: 0;">Recuperación de contraseña</h2>
+            <p>Hola <strong>' . e($user->name) . '</strong>,</p>
+            <p>Recibimos una solicitud para restablecer tu contraseña. Se generó una contraseña temporal para que puedas acceder a tu cuenta:</p>
+            <div style="background-color: #f4f4f4; border-left: 4px solid #3490dc; padding: 15px; margin: 20px 0; font-size: 16px;">
+                <strong>Contraseña temporal:</strong> <code style="font-size: 18px; letter-spacing: 1px;">' . $tempPassword . '</code>
+            </div>
+            <p>Por favor, iniciá sesión y cambiá tu contraseña inmediatamente:</p>
+            <div style="text-align: center; margin: 25px 0;">
+                <a href="' . $loginUrl . '" style="background-color: #3490dc; color: #ffffff; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: 600; display: inline-block;">Iniciar sesión</a>
+            </div>
+            <p style="color: #999; font-size: 12px;">Si no solicitaste este cambio, contactá al administrador de ' . e($appName) . '.</p>
+        ';
+
         Mail::to($user->email)
-            ->send(new \App\Mail\SendNotification(
-                "Your temporary password is: <strong>{$tempPassword}</strong><br>Login here: <a href=\"{$loginUrl}\">{$loginUrl}</a><br>Please log in and change your password immediately.",
-                'Password Recovery'
-            ));
+            ->send(new \App\Mail\SendNotification($emailBody, 'Recuperación de contraseña - ' . $appName));
 
         $recoverDescription = "Se generó una contraseña temporal para {$user->name}";
 
@@ -177,7 +190,7 @@ class AuthController extends Controller
             ])
             ->log($recoverDescription);
 
-        return \response()->json(['status' => 'ok', 'message' => 'Recovery process initiated']);
+        return \response()->json(['status' => 'ok', 'message' => 'Se envió un correo con las instrucciones para recuperar tu contraseña']);
     }
 
     /**
