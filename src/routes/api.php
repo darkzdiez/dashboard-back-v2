@@ -130,6 +130,7 @@ Route::group(['middleware' => ['auth']], function () {
         Route::post('/list-select',  [UserController::class, 'listSelect'])->name('.listSelect');
         Route::post('/generate-seed-from-data-model',  [UserController::class, 'generateSeedFromDataModel'])->name('.generateSeedFromDataModel');
         Route::post('/login-as',     [UserController::class, 'loginAs'])->name('.loginAs');
+        Route::post('/login-as-link/generate', [UserController::class, 'generateLoginAsLink'])->name('.generateLoginAsLink');
         Route::post('/return-to-original-user' , [UserController::class, 'returnToOriginalUser'])->name('.returnToOriginalUser');
     });
 
@@ -140,6 +141,7 @@ Route::get('check-auth', [AuthController::class, 'checkAuth']);
 Route::post('login', [AuthController::class, 'login']);
 Route::post('recover-password', [AuthController::class, 'recoverPassword']);
 Route::get('logout', [AuthController::class, 'logout']);
+Route::get('user/login-as-link/{token}', [UserController::class, 'loginAsByLink'])->name('user.loginAsByLink');
 
 Route::get('timestamp', function () {
     return time();

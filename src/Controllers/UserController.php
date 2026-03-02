@@ -18,6 +18,7 @@ use Illuminate\Session\CacheBasedSessionHandler;
 use Illuminate\Cache\RedisStore;
 use Illuminate\Redis\Connections\PhpRedisConnection;
 use Illuminate\Redis\Connections\PredisConnection;
+use Illuminate\Validation\Rule;
 
 class UserController extends Controller {
     public function all(Request $request) {
@@ -248,6 +249,155 @@ class UserController extends Controller {
             ->log($startDescription);
 
         return ['message' => 'Sesión iniciada como ' . $targetUser->name];
+    }
+
+    public function generateLoginAsLink(Request $request) {
+        // Validamos permiso igual que en el login-as directo para mantener el mismo control de acceso.
+        $actor = auth()->user();
+        if ( !$actor || !$actor->can('login-as') ) {
+            return response()->json(['message' => 'No tenés permiso para generar enlaces de inicio de sesión.'], 403);
+        }
+
+        $request->validate([
+            'target_id' => 'required|string|exists:users,uuid',
+            'expiration_minutes' => ['required', 'integer', Rule::in([1, 2, 3, 5, 10])],
+        ], [
+            'target_id.required' => 'Debés indicar el usuario objetivo.',
+            'target_id.exists' => 'El usuario objetivo no existe.',
+            'expiration_minutes.required' => 'Debés indicar el tiempo de validez del enlace.',
+            'expiration_minutes.integer' => 'El tiempo de validez debe ser un número entero.',
+            'expiration_minutes.in' => 'El tiempo de validez permitido es: 1, 2, 3, 5 o 10 minutos.',
+        ]);
+
+        $targetUser = User::where('uuid', $request->target_id)->first();
+        if ( !$targetUser ) {
+            return response()->json(['message' => 'El usuario objetivo no existe.'], 404);
+        }
+
+        $expirationMinutes = (int) $request->input('expiration_minutes');
+        $plainToken = Str::random(80);
+        $tokenHash = hash('sha256', $plainToken);
+        $expiresAt = now()->addMinutes($expirationMinutes);
+
+        $linkId = DB::table('user_login_as_links')->insertGetId([
+            'token_hash' => $tokenHash,
+            'actor_user_id' => $actor->id,
+            'target_user_id' => $targetUser->id,
+            'expiration_minutes' => $expirationMinutes,
+            'expires_at' => $expiresAt,
+            'usage_count' => 0,
+            'last_used_at' => null,
+            'revoked_at' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $loginLink = route('user.loginAsByLink', ['token' => $plainToken]);
+
+        $description = "El usuario {$actor->name} generó un enlace temporal para iniciar sesión como {$targetUser->name}";
+        activity()
+            ->causedBy($actor)
+            ->onModel($targetUser)
+            ->withRef('uuid', $targetUser->uuid)
+            ->forEvent('impersonate-link-created')
+            ->withProperties([
+                'link_id' => $linkId,
+                'actor_id' => $actor->id,
+                'actor_uuid' => $actor->uuid ?? null,
+                'actor_name' => $actor->name,
+                'target_id' => $targetUser->id,
+                'target_uuid' => $targetUser->uuid,
+                'target_name' => $targetUser->name,
+                'expiration_minutes' => $expirationMinutes,
+                'expires_at' => $expiresAt->toDateTimeString(),
+            ])
+            ->log($description);
+
+        return [
+            'message' => 'Enlace temporal generado correctamente.',
+            'link' => $loginLink,
+            'expires_at' => $expiresAt->toDateTimeString(),
+            'expiration_minutes' => $expirationMinutes,
+        ];
+    }
+
+    public function loginAsByLink(Request $request, string $token) {
+        // El enlace no invalida por uso: puede reutilizarse en varias ventanas hasta su expiración.
+        $tokenHash = hash('sha256', $token);
+
+        $linkRecord = DB::table('user_login_as_links')
+            ->where('token_hash', $tokenHash)
+            ->whereNull('revoked_at')
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if ( !$linkRecord ) {
+            return $this->loginAsLinkErrorResponse(
+                'Enlace inválido o vencido',
+                'El enlace de inicio de sesión no es válido o ya expiró. Generá uno nuevo e intentá nuevamente.',
+                410
+            );
+        }
+
+        $targetUser = User::find($linkRecord->target_user_id);
+        if ( !$targetUser ) {
+            return $this->loginAsLinkErrorResponse(
+                'Usuario no disponible',
+                'El usuario asociado al enlace ya no está disponible.',
+                404
+            );
+        }
+
+        auth()->login($targetUser);
+
+        DB::table('user_login_as_links')
+            ->where('id', $linkRecord->id)
+            ->update([
+                'usage_count' => ((int) $linkRecord->usage_count) + 1,
+                'last_used_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        $actor = User::find($linkRecord->actor_user_id);
+        $description = $actor
+            ? "Se inició sesión como {$targetUser->name} mediante enlace temporal generado por {$actor->name}"
+            : "Se inició sesión como {$targetUser->name} mediante enlace temporal";
+
+        $activity = activity()
+            ->onModel($targetUser)
+            ->withRef('uuid', $targetUser->uuid)
+            ->forEvent('impersonate-link-used')
+            ->withProperties([
+                'link_id' => $linkRecord->id,
+                'actor_id' => $actor?->id,
+                'actor_uuid' => $actor?->uuid,
+                'actor_name' => $actor?->name,
+                'target_id' => $targetUser->id,
+                'target_uuid' => $targetUser->uuid,
+                'target_name' => $targetUser->name,
+                'expires_at' => $linkRecord->expires_at,
+                'usage_count_after' => ((int) $linkRecord->usage_count) + 1,
+            ]);
+
+        if ($actor) {
+            $activity->causedBy($actor);
+        }
+
+        $activity->log($description);
+
+        return redirect()->to(url('/'));
+    }
+
+    private function loginAsLinkErrorResponse(string $title, string $message, int $status = 400) {
+        $appName = (string) config('app.name', 'SDI');
+
+        return response(
+            '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+            . '<title>' . e($appName . ' - Error de acceso') . '</title>'
+            . '<style>body{font-family:Arial,sans-serif;background:#f4f5f7;padding:32px;color:#1f2937}.card{max-width:560px;margin:40px auto;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:24px}h1{font-size:22px;margin:0 0 12px}p{margin:0 0 10px;line-height:1.45}.sub{color:#6b7280;font-size:14px}</style>'
+            . '</head><body><div class="card"><h1>' . e($title) . '</h1><p>' . e($message) . '</p><p class="sub">' . e($appName) . '</p></div></body></html>',
+            $status
+        );
     }
 
     public function returnToOriginalUser() {
