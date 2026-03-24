@@ -16,7 +16,7 @@ use AporteWeb\Dashboard\Controllers\NewsController;
 use AporteWeb\Dashboard\Controllers\AuthController;
 use Illuminate\Support\Facades\Auth;
 
-Route::group(['middleware' => ['auth']], function () {
+Route::group(['middleware' => ['auth:web,api']], function () {
     Route::group([
         'prefix' => 'notes',
         'as'     => 'notes',
