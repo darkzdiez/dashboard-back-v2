@@ -141,6 +141,7 @@ Route::get('check-auth', [AuthController::class, 'checkAuth']);
 Route::post('login', [AuthController::class, 'login']);
 Route::post('recover-password', [AuthController::class, 'recoverPassword']);
 Route::get('logout', [AuthController::class, 'logout']);
+Route::post('user/login-as-link/exchange', [UserController::class, 'exchangeLoginAsLink'])->name('user.exchangeLoginAsLink');
 Route::get('user/login-as-link/{token}', [UserController::class, 'loginAsByLink'])->name('user.loginAsByLink');
 
 Route::get('timestamp', function () {

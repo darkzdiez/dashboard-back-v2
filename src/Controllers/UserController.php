@@ -5,6 +5,7 @@ namespace AporteWeb\Dashboard\Controllers;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\Auth\AuthContextBuilder;
 use AporteWeb\Dashboard\Models\Group;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -214,8 +215,8 @@ class UserController extends Controller {
 
     public function loginAs(Request $request) {
         // Primero checamos si el usuario tiene permiso para hacer login como otro usuario
-        $actor = clone auth()->user();
-        if ( !$actor->can('login-as') ) {
+        $actor = auth()->user();
+        if ( !$this->actorCanLoginAs($actor) ) {
             return response()->json(['message' => 'No tienes permiso para hacer login como otro usuario'], 403);
         }
 
@@ -223,6 +224,14 @@ class UserController extends Controller {
         $targetUser = User::where('uuid', $request->target_id)->first();
         if ( !$targetUser ) {
             return response()->json(['message' => 'El usuario no existe'], 404);
+        }
+
+        if ($this->isTokenAuthRequest($request)) {
+            $this->logImpersonationStart($actor, $targetUser);
+
+            return response()->json(
+                $this->buildTokenAuthResponse($targetUser, $actor, 'sdi-api-impersonation'),
+            );
         }
 
         // iniciamos sesión como el usuario
@@ -233,20 +242,7 @@ class UserController extends Controller {
 
         $startDescription = "El usuario {$actor->name} inició sesión como {$targetUser->name}";
 
-        activity()
-            ->causedBy($actor)
-            ->onModel($targetUser)
-            ->withRef('uuid', $targetUser->uuid)
-            ->forEvent('impersonate-start')
-            ->withProperties([
-                'actor_id' => $actor->id,
-                'actor_uuid' => $actor->uuid ?? null,
-                'actor_name' => $actor->name,
-                'target_id' => $targetUser->id,
-                'target_uuid' => $targetUser->uuid,
-                'target_name' => $targetUser->name,
-            ])
-            ->log($startDescription);
+        $this->logImpersonationStart($actor, $targetUser);
 
         return ['message' => 'Sesión iniciada como ' . $targetUser->name];
     }
@@ -254,7 +250,7 @@ class UserController extends Controller {
     public function generateLoginAsLink(Request $request) {
         // Validamos permiso igual que en el login-as directo para mantener el mismo control de acceso.
         $actor = auth()->user();
-        if ( !$actor || !$actor->can('login-as') ) {
+        if ( !$this->actorCanLoginAs($actor) ) {
             return response()->json(['message' => 'No tenés permiso para generar enlaces de inicio de sesión.'], 403);
         }
 
@@ -292,7 +288,7 @@ class UserController extends Controller {
             'updated_at' => now(),
         ]);
 
-        $loginLink = route('user.loginAsByLink', ['token' => $plainToken]);
+        $loginLink = $this->buildLoginAsLink($request, $plainToken);
 
         $description = "El usuario {$actor->name} generó un enlace temporal para iniciar sesión como {$targetUser->name}";
         activity()
@@ -321,15 +317,49 @@ class UserController extends Controller {
         ];
     }
 
-    public function loginAsByLink(Request $request, string $token) {
-        // El enlace no invalida por uso: puede reutilizarse en varias ventanas hasta su expiración.
-        $tokenHash = hash('sha256', $token);
+    public function exchangeLoginAsLink(Request $request) {
+        $request->validate([
+            'token' => 'required|string',
+        ], [
+            'token.required' => 'Debés indicar el token del enlace temporal.',
+        ]);
 
-        $linkRecord = DB::table('user_login_as_links')
-            ->where('token_hash', $tokenHash)
-            ->whereNull('revoked_at')
-            ->where('expires_at', '>', now())
-            ->first();
+        $linkRecord = $this->resolveActiveLoginAsLinkRecord($request->input('token'));
+
+        if ( !$linkRecord ) {
+            return response()->json([
+                'message' => 'El enlace de inicio de sesión no es válido o ya expiró.',
+            ], 410);
+        }
+
+        $targetUser = User::find($linkRecord->target_user_id);
+        if ( !$targetUser ) {
+            return response()->json([
+                'message' => 'El usuario asociado al enlace ya no está disponible.',
+            ], 404);
+        }
+
+        $this->markLoginAsLinkAsUsed($linkRecord);
+
+        $actor = User::find($linkRecord->actor_user_id);
+        $this->logImpersonationLinkUse($linkRecord, $targetUser, $actor);
+
+        return response()->json(
+            $this->buildTokenAuthResponse(
+                $targetUser,
+                $actor,
+                'sdi-api-impersonation-link',
+            ),
+        );
+    }
+
+    public function loginAsByLink(Request $request, string $token) {
+        if ($this->shouldRedirectLoginAsLinkToFrontend()) {
+            return redirect()->away($this->buildFrontendLoginAsLink($request, $token));
+        }
+
+        // El enlace no invalida por uso: puede reutilizarse en varias ventanas hasta su expiración.
+        $linkRecord = $this->resolveActiveLoginAsLinkRecord($token);
 
         if ( !$linkRecord ) {
             return $this->loginAsLinkErrorResponse(
@@ -350,40 +380,10 @@ class UserController extends Controller {
 
         auth()->login($targetUser);
 
-        DB::table('user_login_as_links')
-            ->where('id', $linkRecord->id)
-            ->update([
-                'usage_count' => ((int) $linkRecord->usage_count) + 1,
-                'last_used_at' => now(),
-                'updated_at' => now(),
-            ]);
+        $this->markLoginAsLinkAsUsed($linkRecord);
 
         $actor = User::find($linkRecord->actor_user_id);
-        $description = $actor
-            ? "Se inició sesión como {$targetUser->name} mediante enlace temporal generado por {$actor->name}"
-            : "Se inició sesión como {$targetUser->name} mediante enlace temporal";
-
-        $activity = activity()
-            ->onModel($targetUser)
-            ->withRef('uuid', $targetUser->uuid)
-            ->forEvent('impersonate-link-used')
-            ->withProperties([
-                'link_id' => $linkRecord->id,
-                'actor_id' => $actor?->id,
-                'actor_uuid' => $actor?->uuid,
-                'actor_name' => $actor?->name,
-                'target_id' => $targetUser->id,
-                'target_uuid' => $targetUser->uuid,
-                'target_name' => $targetUser->name,
-                'expires_at' => $linkRecord->expires_at,
-                'usage_count_after' => ((int) $linkRecord->usage_count) + 1,
-            ]);
-
-        if ($actor) {
-            $activity->causedBy($actor);
-        }
-
-        $activity->log($description);
+        $this->logImpersonationLinkUse($linkRecord, $targetUser, $actor);
 
         return redirect()->to(url('/'));
     }
@@ -430,6 +430,171 @@ class UserController extends Controller {
             }
         }
         return ['message' => 'No hay sesión para regresar'];        
+    }
+
+    private function actorCanLoginAs(?User $actor): bool
+    {
+        if ( !$actor ) {
+            return false;
+        }
+
+        return $actor->getOrgAllPermissions()
+            ->pluck('name')
+            ->contains('login-as');
+    }
+
+    private function isTokenAuthRequest(Request $request): bool
+    {
+        return $request->expectsJson()
+            || filled($request->bearerToken())
+            || (bool) $request->user('api');
+    }
+
+    private function buildTokenAuthResponse(
+        User $targetUser,
+        ?User $originalUser = null,
+        string $tokenName = 'sdi-api-impersonation',
+    ): array {
+        $tokenResult = $targetUser->createToken($tokenName, ['*']);
+        $authContextBuilder = app(AuthContextBuilder::class);
+        $authContext = $authContextBuilder->build(
+            $targetUser,
+            [
+                'original_user' => $originalUser
+                    ? $authContextBuilder->buildOriginalUserMeta($originalUser)
+                    : null,
+            ],
+        );
+
+        return [
+            'status' => 'success',
+            'message' => 'Sesión iniciada como ' . $targetUser->name,
+            'data' => [
+                'access_token' => $tokenResult->accessToken,
+                'token_type' => 'Bearer',
+                'expires_at' => $tokenResult->token->expires_at?->toAtomString(),
+                'user' => $authContext['user'],
+                'config' => $authContext['config'],
+            ],
+        ];
+    }
+
+    private function logImpersonationStart(User $actor, User $targetUser): void
+    {
+        $startDescription = "El usuario {$actor->name} inició sesión como {$targetUser->name}";
+
+        activity()
+            ->causedBy($actor)
+            ->onModel($targetUser)
+            ->withRef('uuid', $targetUser->uuid)
+            ->forEvent('impersonate-start')
+            ->withProperties([
+                'actor_id' => $actor->id,
+                'actor_uuid' => $actor->uuid ?? null,
+                'actor_name' => $actor->name,
+                'target_id' => $targetUser->id,
+                'target_uuid' => $targetUser->uuid,
+                'target_name' => $targetUser->name,
+            ])
+            ->log($startDescription);
+    }
+
+    private function resolveActiveLoginAsLinkRecord(string $token): ?object
+    {
+        $tokenHash = hash('sha256', $token);
+
+        return DB::table('user_login_as_links')
+            ->where('token_hash', $tokenHash)
+            ->whereNull('revoked_at')
+            ->where('expires_at', '>', now())
+            ->first();
+    }
+
+    private function markLoginAsLinkAsUsed(object $linkRecord): void
+    {
+        DB::table('user_login_as_links')
+            ->where('id', $linkRecord->id)
+            ->update([
+                'usage_count' => ((int) $linkRecord->usage_count) + 1,
+                'last_used_at' => now(),
+                'updated_at' => now(),
+            ]);
+    }
+
+    private function logImpersonationLinkUse(
+        object $linkRecord,
+        User $targetUser,
+        ?User $actor,
+    ): void {
+        $description = $actor
+            ? "Se inició sesión como {$targetUser->name} mediante enlace temporal generado por {$actor->name}"
+            : "Se inició sesión como {$targetUser->name} mediante enlace temporal";
+
+        $activity = activity()
+            ->onModel($targetUser)
+            ->withRef('uuid', $targetUser->uuid)
+            ->forEvent('impersonate-link-used')
+            ->withProperties([
+                'link_id' => $linkRecord->id,
+                'actor_id' => $actor?->id,
+                'actor_uuid' => $actor?->uuid,
+                'actor_name' => $actor?->name,
+                'target_id' => $targetUser->id,
+                'target_uuid' => $targetUser->uuid,
+                'target_name' => $targetUser->name,
+                'expires_at' => $linkRecord->expires_at,
+                'usage_count_after' => ((int) $linkRecord->usage_count) + 1,
+            ]);
+
+        if ($actor) {
+            $activity->causedBy($actor);
+        }
+
+        $activity->log($description);
+    }
+
+    private function buildLoginAsLink(Request $request, string $token): string
+    {
+        if ($this->isTokenAuthRequest($request)) {
+            return $this->buildFrontendLoginAsLink($request, $token);
+        }
+
+        return route('user.loginAsByLink', ['token' => $token]);
+    }
+
+    private function buildFrontendLoginAsLink(Request $request, string $token): string
+    {
+        return $this->resolveFrontendBaseUrl($request)
+            . '/login-as-link?token='
+            . urlencode($token);
+    }
+
+    private function resolveFrontendBaseUrl(Request $request): string
+    {
+        $configuredFrontendUrl = rtrim(
+            (string) config('app.frontend_url', ''),
+            '/',
+        );
+
+        if ($configuredFrontendUrl !== '') {
+            return $configuredFrontendUrl;
+        }
+
+        $origin = rtrim((string) $request->headers->get('Origin', ''), '/');
+
+        if ($origin !== '') {
+            return $origin;
+        }
+
+        return rtrim((string) config('app.url', ''), '/');
+    }
+
+    private function shouldRedirectLoginAsLinkToFrontend(): bool
+    {
+        $frontendUrl = rtrim((string) config('app.frontend_url', ''), '/');
+        $backendUrl = rtrim((string) config('app.url', ''), '/');
+
+        return $frontendUrl !== '' && $frontendUrl !== $backendUrl;
     }
 
     public function resetPasswordMultiple(Request $request) {
