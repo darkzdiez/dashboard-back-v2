@@ -3,7 +3,6 @@ namespace AporteWeb\Dashboard\Libs;
 
 use App\Models\User;
 use Junges\ACL\Models\Group;
-use Illuminate\Support\Str;
 
 trait WatchdogTrait {
 
@@ -84,7 +83,7 @@ trait WatchdogTrait {
         
         $levelBacktrace = 0;
         // endsWith in Watchdog
-        if ( Str::endsWith($debug[0]['file'], 'Facade.php') || Str::endsWith($debug[0]['file'], 'Helpers.php') ) {
+        if ( str_ends_with($debug[0]['file'], 'Facade.php') || str_ends_with($debug[0]['file'], 'Helpers.php') ) {
             $levelBacktrace = 1;
         }
 
@@ -101,16 +100,11 @@ trait WatchdogTrait {
         $trace = "$file at line $line";
         if ( is_array($permissions) ) {
             if ( ! $this->getInstance()->canAnyWildcard($permissions, $guardName) ) {
-                // detect source file
-                // desloguear
-                auth()->logout();
-                abort(401, 'Unauthorized action. ' . $trace);
+                \abort(403, 'Unauthorized action. ' . $trace);
             }
         } else {
             if ( ! $this->getInstance()->canWildcard($permissions, $guardName) ) {
-                // dd(debug_backtrace());
-                auth()->logout();
-                abort(401, 'Unauthorized action. ' . $trace);
+                \abort(403, 'Unauthorized action. ' . $trace);
             }
         }
     }
