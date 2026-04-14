@@ -445,8 +445,10 @@ class UserController extends Controller {
 
     private function isTokenAuthRequest(Request $request): bool
     {
-        return $request->expectsJson()
-            || filled($request->bearerToken())
+        // Only explicit API auth should trigger tokenized impersonation.
+        // Web applications also send JSON/XHR requests, but they still need
+        // to keep the classic session-based login flow.
+        return filled($request->bearerToken())
             || (bool) $request->user('api');
     }
 
@@ -555,11 +557,23 @@ class UserController extends Controller {
 
     private function buildLoginAsLink(Request $request, string $token): string
     {
-        if ($this->isTokenAuthRequest($request)) {
+        if ($this->shouldBuildFrontendLoginAsLink($request)) {
             return $this->buildFrontendLoginAsLink($request, $token);
         }
 
         return route('user.loginAsByLink', ['token' => $token]);
+    }
+
+    private function shouldBuildFrontendLoginAsLink(Request $request): bool
+    {
+        // Link generation is separate from the final auth mode: UI requests
+        // still need a frontend URL even when the target application will
+        // complete the impersonation through the web-session endpoint.
+        return $this->shouldRedirectLoginAsLinkToFrontend()
+            || $this->isTokenAuthRequest($request)
+            || $request->expectsJson()
+            || $request->ajax()
+            || filled($request->headers->get('Origin'));
     }
 
     private function buildFrontendLoginAsLink(Request $request, string $token): string
